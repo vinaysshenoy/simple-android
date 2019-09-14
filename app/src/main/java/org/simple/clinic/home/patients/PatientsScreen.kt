@@ -32,13 +32,16 @@ import org.simple.clinic.router.screen.ScreenRouter
 import org.simple.clinic.scanid.ScanSimpleIdScreenKey
 import org.simple.clinic.util.RuntimePermissions
 import org.simple.clinic.util.UserClock
+import org.simple.clinic.util.UtcClock
 import org.simple.clinic.widgets.ScreenCreated
 import org.simple.clinic.widgets.ScreenDestroyed
 import org.simple.clinic.widgets.UiEvent
 import org.simple.clinic.widgets.indexOfChildId
 import org.simple.clinic.widgets.visibleOrGone
+import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.Month
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -61,6 +64,9 @@ open class PatientsScreen(context: Context, attrs: AttributeSet) : RelativeLayou
 
   @Inject
   lateinit var userClock: UserClock
+
+  @Inject
+  lateinit var utcClock: UtcClock
 
   @Inject
   lateinit var crashReporter: CrashReporter
@@ -146,7 +152,7 @@ open class PatientsScreen(context: Context, attrs: AttributeSet) : RelativeLayou
   fun openPatientSearchScreen() {
     // TODO: See if we can do this in the ScreenRouter and dynamically replace the keys instead of needing to do this here
     val screenKey = if (instantSearchV1ExperimentToggle.get()) {
-      experiments.instantsearch.PatientSearchScreenKey()
+      experiments.instantsearch.PatientSearchScreenKey(Instant.now(utcClock), UUID.randomUUID())
     } else {
       org.simple.clinic.search.PatientSearchScreenKey()
     }

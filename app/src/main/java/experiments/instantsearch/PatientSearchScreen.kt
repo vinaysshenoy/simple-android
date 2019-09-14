@@ -21,6 +21,7 @@ import org.simple.clinic.router.screen.ScreenRouter
 import org.simple.clinic.scanid.KeyboardVisibilityDetector
 import org.simple.clinic.summary.OpenIntention
 import org.simple.clinic.summary.PatientSummaryScreenKey
+import org.simple.clinic.util.UserClock
 import org.simple.clinic.util.UtcClock
 import org.simple.clinic.util.unsafeLazy
 import org.simple.clinic.widgets.ItemAdapter
@@ -29,6 +30,7 @@ import org.simple.clinic.widgets.UiEvent
 import org.simple.clinic.widgets.hideKeyboard
 import org.simple.clinic.widgets.showKeyboard
 import org.threeten.bp.Instant
+import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
 
@@ -46,9 +48,20 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
   @Inject
   lateinit var utcClock: UtcClock
 
+  @Inject
+  lateinit var userClock: UserClock
+
   private val instantSearchResultsAdapter = ItemAdapter(SearchResultItem.DiffCallback())
 
   private val keyboardVisibilityDetector = KeyboardVisibilityDetector()
+
+  private val screenOpenTime: Instant by unsafeLazy {
+    screenRouter.key<PatientSearchScreenKey>(this).timestamp
+  }
+
+  private val sessionUuid: UUID by unsafeLazy {
+    screenRouter.key<PatientSearchScreenKey>(this).uuid
+  }
 
   private val allPatientsInFacilityView by unsafeLazy {
     allPatientsView as AllPatientsInFacilityView
@@ -91,6 +104,8 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
         controller = controller,
         screenDestroys = screenDestroys
     )
+
+    Timber.d("Screen Open Time: $screenOpenTime; ID: $sessionUuid")
   }
 
   private fun searchTextChanges(): Observable<UiEvent> {
