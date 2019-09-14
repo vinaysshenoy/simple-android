@@ -51,13 +51,12 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
   @Inject
   lateinit var userClock: UserClock
 
+  @Inject
+  lateinit var instantSearchAnalytics: InstantSearchAnalytics
+
   private val instantSearchResultsAdapter = ItemAdapter(SearchResultItem.DiffCallback())
 
   private val keyboardVisibilityDetector = KeyboardVisibilityDetector()
-
-  private val screenOpenTime: Instant by unsafeLazy {
-    screenRouter.key<PatientSearchScreenKey>(this).timestamp
-  }
 
   private val sessionUuid: UUID by unsafeLazy {
     screenRouter.key<PatientSearchScreenKey>(this).uuid
@@ -105,7 +104,7 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
         screenDestroys = screenDestroys
     )
 
-    Timber.d("Screen Open Time: $screenOpenTime; ID: $sessionUuid")
+    instantSearchAnalytics.createSession(sessionUuid)
   }
 
   private fun searchTextChanges(): Observable<UiEvent> {
