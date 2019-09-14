@@ -295,7 +295,13 @@ dependencies {
 
   // Experiments Only
   implementation "androidx.preference:preference:1.1.0"
-  implementation 'com.google.firebase:firebase-firestore:21.1.1'
+  implementation('com.google.firebase:firebase-firestore:21.1.1') {
+    exclude group: 'com.google.firebase', module: 'protolite-well-known-types'
+    exclude group: 'com.google.protobuf', module: 'protobuf-lite'
+    exclude group: 'com.google.protobuf', module: 'protobuf-javalite'
+    because "Heap and firebase both use Protobuf"
+  }
+  implementation 'com.google.protobuf:protobuf-javalite:3.9.0'
 }
 
 // This must always be present at the bottom of this file, as per:
