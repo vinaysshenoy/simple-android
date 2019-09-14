@@ -294,7 +294,8 @@ dependencies {
   implementation "androidx.work:work-gcm:$versions.workManager"
 
   // Experiments Only
-  implementation "androidx.preference:preference:$versions.androidXPreference"
+  implementation "androidx.preference:preference:1.1.0"
+  implementation 'com.google.firebase:firebase-firestore:21.1.1'
 }
 
 // This must always be present at the bottom of this file, as per:
