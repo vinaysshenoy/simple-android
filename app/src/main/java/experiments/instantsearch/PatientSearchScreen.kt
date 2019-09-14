@@ -18,6 +18,8 @@ import org.simple.clinic.allpatientsinfacility.AllPatientsInFacilitySearchResult
 import org.simple.clinic.allpatientsinfacility.AllPatientsInFacilityView
 import org.simple.clinic.bindUiToController
 import org.simple.clinic.newentry.PatientEntryScreenKey
+import org.simple.clinic.router.screen.BackPressInterceptCallback
+import org.simple.clinic.router.screen.BackPressInterceptor
 import org.simple.clinic.router.screen.ScreenRouter
 import org.simple.clinic.scanid.KeyboardVisibilityDetector
 import org.simple.clinic.summary.OpenIntention
@@ -66,6 +68,12 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
     allPatientsView as AllPatientsInFacilityView
   }
 
+  private val backPressInterceptor = object : BackPressInterceptor {
+    override fun onInterceptBackPress(callback: BackPressInterceptCallback) {
+      instantSearchAnalytics.exitedTheScreen(sessionUuid, numberOfTypedCharacters, currentInputType)
+    }
+  }
+
   private var currentInputType = InputType.Unknown
 
   private val numberOfTypedCharacters: Int
@@ -83,6 +91,7 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
         .inject(this)
 
     backButton.setOnClickListener {
+      instantSearchAnalytics.exitedTheScreen(sessionUuid, numberOfTypedCharacters, currentInputType)
       screenRouter.pop()
     }
     searchQueryEditText.showKeyboard()
@@ -194,10 +203,12 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
         newPatientContainer.visibility = GONE
       }
     }
+    screenRouter.registerBackPressInterceptor(backPressInterceptor)
   }
 
   override fun onDetachedFromWindow() {
     super.onDetachedFromWindow()
     keyboardVisibilityDetector.unregisterListener(this)
+    screenRouter.unregisterBackPressInterceptor(backPressInterceptor)
   }
 }
