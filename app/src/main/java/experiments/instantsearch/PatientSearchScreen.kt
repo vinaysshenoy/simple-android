@@ -92,7 +92,10 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
       adapter = instantSearchResultsAdapter
     }
 
-    newPatientButton.setOnClickListener { screenRouter.push(PatientEntryScreenKey()) }
+    newPatientButton.setOnClickListener {
+      instantSearchAnalytics.clickedRegisterNewPatient(sessionUuid)
+      screenRouter.push(PatientEntryScreenKey())
+    }
 
     bindUiToController(
         ui = this,
