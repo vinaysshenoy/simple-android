@@ -1,11 +1,24 @@
 package experiments.instantsearch
 
-import dagger.Binds
+import com.f2prateek.rx.preferences2.Preference
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Module
+import dagger.Provides
+import org.simple.clinic.util.UserClock
+import org.simple.clinic.util.UtcClock
+import javax.inject.Named
 
 @Module
-abstract class InstantSearchModule {
+class InstantSearchModule {
 
-  @Binds
-  abstract fun bindInstantSearchAnalytics(instantSearchFirestoreAnalytics: InstantSearchFirestoreAnalytics): InstantSearchAnalytics
+  @Provides
+  fun bindInstantSearchAnalytics(
+      utcClock: UtcClock,
+      userClock: UserClock,
+      firestore: FirebaseFirestore,
+      @Named("experiment_instantsearch_v1_toggle") experimentEnabled: Preference<Boolean>
+  ): InstantSearchAnalytics {
+    return InstantSearchFirestoreAnalytics(utcClock, userClock, firestore)
+        .allowEvents(experimentEnabled)
+  }
 }
