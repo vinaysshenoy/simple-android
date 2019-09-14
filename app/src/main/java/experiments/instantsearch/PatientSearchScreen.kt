@@ -131,6 +131,7 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
     val patientClicksFromInstantSearchResults: Observable<UiEvent> = instantSearchResultsAdapter
         .itemEvents
         .ofType<SearchResultItem.Event.SearchResultClicked>()
+        .doOnNext { instantSearchAnalytics.clickedOnSearchResult(sessionUuid, numberOfTypedCharacters, currentInputType) }
         .map { PatientItemClicked(it.patientUuid) }
 
     return patientClicksFromAllPatientsInFacility
