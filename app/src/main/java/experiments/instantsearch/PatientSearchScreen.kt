@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.jakewharton.rxbinding2.support.v7.widget.RxRecyclerView
 import com.jakewharton.rxbinding2.view.RxView
 import com.jakewharton.rxbinding2.widget.RxTextView
+import experiments.instantsearch.InstantSearchAnalytics.InputType
 import io.reactivex.Observable
 import io.reactivex.rxkotlin.ofType
 import kotlinx.android.synthetic.main.experiment_screen_patient_search.view.*
@@ -30,7 +31,6 @@ import org.simple.clinic.widgets.UiEvent
 import org.simple.clinic.widgets.hideKeyboard
 import org.simple.clinic.widgets.showKeyboard
 import org.threeten.bp.Instant
-import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
 
@@ -66,6 +66,11 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
     allPatientsView as AllPatientsInFacilityView
   }
 
+  private var currentInputType = InputType.Unknown
+
+  private val numberOfTypedCharacters: Int
+    get() = searchQueryEditText.text.length
+
   override fun onFinishInflate() {
     super.onFinishInflate()
     if (isInEditMode) {
@@ -93,7 +98,7 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
     }
 
     newPatientButton.setOnClickListener {
-      instantSearchAnalytics.clickedRegisterNewPatient(sessionUuid)
+      instantSearchAnalytics.clickedRegisterNewPatient(sessionUuid, numberOfTypedCharacters, currentInputType)
       screenRouter.push(PatientEntryScreenKey())
     }
 
@@ -158,7 +163,7 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
     ))
   }
 
-  fun showInstantSearchResults(results: PatientSearchResults) {
+  fun showInstantSearchResults(results: PatientSearchResults, inputType: InputType) {
     allPatientsView.visibility = GONE
     instantSearchResults.visibility = VISIBLE
     if (results.hasNoResults) {
@@ -166,6 +171,7 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
     } else {
       emptyStateView.visibility = GONE
     }
+    currentInputType = inputType
     instantSearchResultsAdapter.submitList(SearchResultItem.from(results))
   }
 
@@ -174,6 +180,7 @@ class PatientSearchScreen(context: Context, attrs: AttributeSet) : RelativeLayou
     instantSearchResults.visibility = GONE
     emptyStateView.visibility = GONE
     newPatientContainer.visibility = GONE
+    currentInputType = InputType.Unknown
     instantSearchResultsAdapter.submitList(emptyList())
   }
 

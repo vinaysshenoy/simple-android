@@ -42,27 +42,61 @@ class InstantSearchFirestoreAnalytics @Inject constructor(
         .addOnFailureListener { sessionRef.set(session) }
   }
 
-  override fun clickedRegisterNewPatient(sessionId: UUID) {
-    val event = Event.registerPatientClicked(utcClock, userClock)
+  override fun clickedRegisterNewPatient(
+      sessionId: UUID,
+      numberOfCharactersTyped: Int,
+      inputType: InstantSearchAnalytics.InputType
+  ) {
+    val event = Event.registerPatientClicked(utcClock, userClock, numberOfCharactersTyped, inputType)
 
     sessionRef(sessionId)
         .get()
         .addOnSuccessListener { snapShot ->
           val session = snapShot.toObject(Session::class.java)
 
-          if(session != null) {
+          if (session != null) {
             session.events.add(event)
             snapShot.reference.set(session)
           }
         }
   }
 
-  override fun clickedOnSearchResult(sessionId: UUID, index: Int, total: Int) {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+  override fun clickedOnSearchResult(
+      sessionId: UUID,
+      numberOfCharactersTyped: Int,
+      inputType: InstantSearchAnalytics.InputType
+  ) {
+    val event = Event.searchResultClicked(utcClock, userClock, numberOfCharactersTyped, inputType)
+
+    sessionRef(sessionId)
+        .get()
+        .addOnSuccessListener { snapShot ->
+          val session = snapShot.toObject(Session::class.java)
+
+          if (session != null) {
+            session.events.add(event)
+            snapShot.reference.set(session)
+          }
+        }
   }
 
-  override fun exitedTheScreen(sessionId: UUID) {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+  override fun exitedTheScreen(
+      sessionId: UUID,
+      numberOfCharactersTyped: Int,
+      inputType: InstantSearchAnalytics.InputType
+  ) {
+    val event = Event.exitedScreen(utcClock, userClock, numberOfCharactersTyped, inputType)
+
+    sessionRef(sessionId)
+        .get()
+        .addOnSuccessListener { snapShot ->
+          val session = snapShot.toObject(Session::class.java)
+
+          if (session != null) {
+            session.events.add(event)
+            snapShot.reference.set(session)
+          }
+        }
   }
 
   private class Event {
@@ -77,11 +111,48 @@ class InstantSearchFirestoreAnalytics @Inject constructor(
 
     companion object {
 
-      fun registerPatientClicked(utcClock: UtcClock, userClock: UserClock): Event {
+      fun registerPatientClicked(
+          utcClock: UtcClock,
+          userClock: UserClock,
+          numberOfCharactersTyped: Int,
+          inputType: InstantSearchAnalytics.InputType
+      ): Event {
         return Event().apply {
           type = "register_patient_clicked"
           timestamp = Instant.now(utcClock).toString()
           localTime = localTimeFormatter.format(LocalDateTime.now(userClock))
+          props["characters_typed"] = numberOfCharactersTyped
+          props["input_type"] = inputType.name
+        }
+      }
+
+      fun exitedScreen(
+          utcClock: UtcClock,
+          userClock: UserClock,
+          numberOfCharactersTyped: Int,
+          inputType: InstantSearchAnalytics.InputType
+      ): Event {
+        return Event().apply {
+          type = "exited_screen"
+          timestamp = Instant.now(utcClock).toString()
+          localTime = localTimeFormatter.format(LocalDateTime.now(userClock))
+          props["characters_typed"] = numberOfCharactersTyped
+          props["input_type"] = inputType.name
+        }
+      }
+
+      fun searchResultClicked(
+          utcClock: UtcClock,
+          userClock: UserClock,
+          numberOfCharactersTyped: Int,
+          inputType: InstantSearchAnalytics.InputType
+      ): Event {
+        return Event().apply {
+          type = "search_result_clicked"
+          timestamp = Instant.now(utcClock).toString()
+          localTime = localTimeFormatter.format(LocalDateTime.now(userClock))
+          props["characters_typed"] = numberOfCharactersTyped
+          props["input_type"] = inputType.name
         }
       }
     }

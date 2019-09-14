@@ -1,6 +1,7 @@
 package experiments.instantsearch
 
 import experiments.instantsearch.InstantPatientSearchExperimentsDao.PatientNamePhoneNumber
+import experiments.instantsearch.InstantSearchAnalytics.InputType
 import io.reactivex.Observable
 import io.reactivex.ObservableSource
 import io.reactivex.ObservableTransformer
@@ -76,7 +77,10 @@ class PatientSearchScreenController @Inject constructor(
         .switchMap { (searchQuery, patientDetails) -> instantSearch(searchQuery, patientDetails) }
         .compose(PartitionSearchResultsByVisitedFacility(bloodPressureDao, facilityStream))
         .withLatestFrom(enteredTextChanges) { searchResults, enteredText -> searchResults.withSearchQuery(enteredText) }
-        .map { searchResults -> { ui: Ui -> ui.showInstantSearchResults(searchResults) } }
+        .map { searchResults ->
+          val inputType = if (digitsRegex.matches(searchResults.searchQuery)) InputType.Number else InputType.Name
+          { ui: Ui -> ui.showInstantSearchResults(searchResults, inputType) }
+        }
 
     return Observable.merge(hideSearchResults, showSearchResults)
   }
