@@ -17,13 +17,13 @@ import javax.inject.Inject
 
 class EncounterRepository @Inject constructor(
     private val database: AppDatabase
-) : SynceableRepository<Encounter, EncounterPayload> {
+) : SynceableRepository<ObservationsForEncounter, EncounterPayload> {
 
-  override fun save(records: List<Encounter>): Completable {
-    return Completable.fromAction { database.encountersDao().save(encounters = records) }
+  override fun save(records: List<ObservationsForEncounter>): Completable {
+    return saveMergedEncounters(records)
   }
 
-  override fun recordsWithSyncStatus(syncStatus: SyncStatus): Single<List<Encounter>> {
+  override fun recordsWithSyncStatus(syncStatus: SyncStatus): Single<List<ObservationsForEncounter>> {
     return database.encountersDao().recordsWithSyncStatus(syncStatus).firstOrError()
   }
 
