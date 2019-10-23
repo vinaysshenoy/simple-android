@@ -20,7 +20,7 @@ class EncounterRepository @Inject constructor(
 ) : SynceableRepository<ObservationsForEncounter, EncounterPayload> {
 
   override fun save(records: List<ObservationsForEncounter>): Completable {
-    return saveMergedEncounters(records)
+    return saveObservationsForEncounters(records)
   }
 
   override fun recordsWithSyncStatus(syncStatus: SyncStatus): Single<List<ObservationsForEncounter>> {
@@ -45,7 +45,7 @@ class EncounterRepository @Inject constructor(
         .map { (payload, _) -> payload }
         .map(::payloadToEncounters)
         .toList()
-        .flatMapCompletable(::saveMergedEncounters)
+        .flatMapCompletable(::saveObservationsForEncounters)
   }
 
   private fun canEncountersBeOverridden(payload: EncounterPayload): Observable<Boolean> {
@@ -63,7 +63,7 @@ class EncounterRepository @Inject constructor(
     return ObservationsForEncounter(encounter = payload.toDatabaseModel(DONE), bloodPressures = bloodPressures)
   }
 
-  private fun saveMergedEncounters(records: List<ObservationsForEncounter>): Completable {
+  private fun saveObservationsForEncounters(records: List<ObservationsForEncounter>): Completable {
     return Completable.fromAction {
       val bloodPressures = records.flatMap { it.bloodPressures }
       val encounters = records.map { it.encounter }
