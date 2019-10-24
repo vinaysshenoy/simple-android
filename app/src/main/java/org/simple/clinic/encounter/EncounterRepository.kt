@@ -56,13 +56,6 @@ class EncounterRepository @Inject constructor(
     }
   }
 
-  private fun payloadToEncounters(payload: EncounterPayload): ObservationsForEncounter {
-    val bloodPressures = payload.observations.bloodPressureMeasurements.map { bps ->
-      bps.toDatabaseModel(syncStatus = DONE, encounterUuid = payload.uuid)
-    }
-    return ObservationsForEncounter(encounter = payload.toDatabaseModel(DONE), bloodPressures = bloodPressures)
-  }
-
   private fun saveObservationsForEncounters(records: List<ObservationsForEncounter>): Completable {
     return Completable.fromAction {
       val bloodPressures = records.flatMap { it.bloodPressures }
@@ -70,11 +63,18 @@ class EncounterRepository @Inject constructor(
 
       with(database) {
         openHelper.writableDatabase.inTransaction {
-          bloodPressureDao().save(bloodPressures)
           encountersDao().save(encounters)
+          bloodPressureDao().save(bloodPressures)
         }
       }
     }
+  }
+
+  private fun payloadToEncounters(payload: EncounterPayload): ObservationsForEncounter {
+    val bloodPressures = payload.observations.bloodPressureMeasurements.map { bps ->
+      bps.toDatabaseModel(syncStatus = DONE, encounterUuid = payload.uuid)
+    }
+    return ObservationsForEncounter(encounter = payload.toDatabaseModel(DONE), bloodPressures = bloodPressures)
   }
 
   override fun recordCount(): Observable<Int> {

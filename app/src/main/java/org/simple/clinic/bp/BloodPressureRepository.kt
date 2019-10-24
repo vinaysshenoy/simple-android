@@ -6,6 +6,9 @@ import io.reactivex.Single
 import io.reactivex.rxkotlin.toObservable
 import org.simple.clinic.bp.sync.BloodPressureMeasurementPayload
 import org.simple.clinic.di.AppScope
+import org.simple.clinic.encounter.Encounter
+import org.simple.clinic.encounter.EncounterRepository
+import org.simple.clinic.encounter.ObservationsForEncounter
 import org.simple.clinic.facility.Facility
 import org.simple.clinic.patient.SyncStatus
 import org.simple.clinic.patient.canBeOverriddenByServerCopy
@@ -22,6 +25,7 @@ import javax.inject.Inject
 @AppScope
 class BloodPressureRepository @Inject constructor(
     private val dao: BloodPressureMeasurement.RoomDao,
+    private val encounterRepository: EncounterRepository,
     private val utcClock: UtcClock,
     private val userClock: UserClock
 ) : SynceableRepository<BloodPressureMeasurement, BloodPressureMeasurementPayload> {
@@ -39,25 +43,38 @@ class BloodPressureRepository @Inject constructor(
     }
 
     val now = Instant.now(utcClock)
-    return Single
-        .just(
-            BloodPressureMeasurement(
-                uuid = UUID.randomUUID(),
-                systolic = systolic,
-                diastolic = diastolic,
-                syncStatus = SyncStatus.PENDING,
-                userUuid = loggedInUser.uuid,
-                facilityUuid = currentFacility.uuid,
-                patientUuid = patientUuid,
-                createdAt = now,
-                updatedAt = now,
-                deletedAt = null,
-                recordedAt = recordedAt,
-                encounterUuid = generateEncounterUuid(currentFacility.uuid, patientUuid, recordedAt.toLocalDateAtZone(userClock.zone)))
-        )
-        .flatMap {
-          save(listOf(it)).toSingleDefault(it)
-        }
+    val encounteredDate = recordedAt.toLocalDateAtZone(userClock.zone)
+    val encounterUuid = generateEncounterUuid(currentFacility.uuid, patientUuid, encounteredDate)
+
+    val bloodPressureMeasurement = BloodPressureMeasurement(
+        uuid = UUID.randomUUID(),
+        systolic = systolic,
+        diastolic = diastolic,
+        syncStatus = SyncStatus.PENDING,
+        userUuid = loggedInUser.uuid,
+        facilityUuid = currentFacility.uuid,
+        patientUuid = patientUuid,
+        createdAt = now,
+        updatedAt = now,
+        deletedAt = null,
+        recordedAt = recordedAt,
+        encounterUuid = encounterUuid)
+
+    val encounter = Encounter(
+        uuid = encounterUuid,
+        patientUuid = patientUuid,
+        encounteredOn = encounteredDate,
+        createdAt = now,
+        updatedAt = now,
+        deletedAt = null,
+        syncStatus = SyncStatus.PENDING
+    )
+
+    return encounterRepository.save(listOf(
+        ObservationsForEncounter(
+            encounter = encounter,
+            bloodPressures = listOf(bloodPressureMeasurement))))
+        .toSingleDefault(bloodPressureMeasurement)
   }
 
   override fun save(records: List<BloodPressureMeasurement>): Completable {
