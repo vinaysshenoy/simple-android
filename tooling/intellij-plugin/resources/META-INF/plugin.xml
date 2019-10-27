@@ -28,6 +28,10 @@
     <liveTemplateMacro implementation="org.simple.intellij.macros.UuidMacro"/>
     <defaultLiveTemplatesProvider implementation="org.simple.intellij.templates.SimpleLiveTemplatesProvider"/>
     <liveTemplateContext implementation="org.simple.intellij.templates.SimpleTemplateContextType"/>
+    <intentionAction>
+      <className>org.simple.intellij.intentions.extractinjector.ExtractInjectorIntention</className>
+      <category>Dagger intentions</category>
+    </intentionAction>
   </extensions>
 
   <actions>
