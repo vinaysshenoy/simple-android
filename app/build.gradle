@@ -252,6 +252,7 @@ dependencies {
   implementation "com.f2prateek.rx.preferences2:rx-preferences:$versions.rxPreference"
   implementation "com.tspoon.traceur:traceur:$versions.traceur"
   implementation "ru.egslava:MaskedEditText:$versions.maskedEditText"
+  implementation "com.github.santalu:mask-edittext:$versions.santaluMaskedEditText"
   implementation "io.sentry:sentry-android:$versions.sentry"
   implementation("org.slf4j:slf4j-nop:$versions.slf4j") {
     because "sentry-android needs this dependency"
