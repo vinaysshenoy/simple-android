@@ -1,7 +1,7 @@
 package org.simple.clinic.di
 
 import dagger.Component
-import org.simple.clinic.DatabaseMigrationAndroidTest
+import org.simple.clinic.storage.migrations.DatabaseMigrationAndroidTest
 import org.simple.clinic.FakerModule
 import org.simple.clinic.TestClinicApp
 import org.simple.clinic.appconfig.SelectedCountryPersistenceAndroidTest
