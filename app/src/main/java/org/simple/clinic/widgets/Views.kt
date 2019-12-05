@@ -250,3 +250,10 @@ fun MenuItem.visibleOrGone(isVisible: Boolean) {
 fun ViewPropertyAnimator.setDuration(duration: Duration): ViewPropertyAnimator {
   return setDuration(duration.toMillis())
 }
+
+fun View.focusChanges(): Observable<Boolean> =
+    Observable.create<Boolean> { emitter ->
+      emitter.setCancellable { onFocusChangeListener = null }
+      setOnFocusChangeListener { _, hasFocus -> emitter.onNext(hasFocus) }
+      emitter.onNext(hasFocus())
+    }

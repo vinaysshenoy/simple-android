@@ -153,15 +153,14 @@
             android:layout_height="wrap_content"
             app:errorTextAppearance="@style/Clinic.TextAppearance.TextInputLayoutError">
 
-            <org.simple.clinic.widgets.ageanddateofbirth.DateOfBirthEditText
+            <com.santalu.maskedittext.MaskEditText
               android:id="@+id/dateOfBirthEditText"
               android:layout_width="match_parent"
               android:layout_height="wrap_content"
               android:hint="@string/patientedit_date_of_birth_unfocused"
               android:imeOptions="flagNoFullscreen"
               android:inputType="number"
-              app:allowed_chars="1234567890"
-              app:mask="##/##/####" />
+              app:met_mask="##/##/####" />
           </com.google.android.material.textfield.TextInputLayout>
 
           <org.simple.clinic.newentry.clearbutton.ClearFieldImageButton

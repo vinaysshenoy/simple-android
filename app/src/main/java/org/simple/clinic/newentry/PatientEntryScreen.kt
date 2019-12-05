@@ -55,6 +55,7 @@ import org.simple.clinic.widgets.ageanddateofbirth.DateOfBirthAndAgeVisibility
 import org.simple.clinic.widgets.ageanddateofbirth.DateOfBirthAndAgeVisibility.BOTH_VISIBLE
 import org.simple.clinic.widgets.ageanddateofbirth.DateOfBirthAndAgeVisibility.DATE_OF_BIRTH_VISIBLE
 import org.simple.clinic.widgets.ageanddateofbirth.UserInputDateValidator
+import org.simple.clinic.widgets.focusChanges
 import org.simple.clinic.widgets.hideKeyboard
 import org.simple.clinic.widgets.scrollToChild
 import org.simple.clinic.widgets.setCompoundDrawableStartWithTint
@@ -216,7 +217,7 @@ class PatientEntryScreen(context: Context, attrs: AttributeSet) : RelativeLayout
         fullNameEditText.textChanges(::FullNameChanged),
         phoneNumberEditText.textChanges(::PhoneNumberChanged),
         dateOfBirthEditText.textChanges(::DateOfBirthChanged),
-        dateOfBirthEditText.focusChanges.map(::DateOfBirthFocusChanged),
+        dateOfBirthEditText.focusChanges().map(::DateOfBirthFocusChanged),
         ageEditText.textChanges(::AgeChanged),
         colonyOrVillageEditText.textChanges(::ColonyOrVillageChanged),
         districtEditText.textChanges(::DistrictChanged),
