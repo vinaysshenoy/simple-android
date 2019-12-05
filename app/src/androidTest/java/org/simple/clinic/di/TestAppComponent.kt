@@ -29,6 +29,7 @@ import org.simple.clinic.storage.DaoWithUpsertAndroidTest
 import org.simple.clinic.storage.files.AndroidFileStorageAndroidTest
 import org.simple.clinic.summary.addphone.MissingPhoneReminderRepositoryAndroidTest
 import org.simple.clinic.login.LoginUserWithOtpServerIntegrationTest
+import org.simple.clinic.storage.migrations.BaseDatabaseMigrationTest
 import org.simple.clinic.user.OngoingLoginEntryRepositoryTest
 import org.simple.clinic.user.UserDaoAndroidTest
 import org.simple.clinic.user.UserSessionAndroidTest
@@ -76,4 +77,5 @@ interface TestAppComponent {
   fun inject(target: RegisterUserServerIntegrationTest)
   fun inject(target: SelectedCountryPersistenceAndroidTest)
   fun inject(target: LoginUserWithOtpServerIntegrationTest)
+  fun inject(target: BaseDatabaseMigrationTest)
 }
