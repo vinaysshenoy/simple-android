@@ -5,8 +5,13 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
+import com.spotify.mobius.Connection
+import com.spotify.mobius.MobiusLoop
+import com.spotify.mobius.android.MobiusAndroid
+import com.spotify.mobius.functions.Consumer
+import com.spotify.mobius.rx2.RxMobius
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
-import io.reactivex.Observable
+import io.reactivex.ObservableTransformer
 import org.simple.clinic.BuildConfig
 import org.simple.clinic.ClinicApp
 import org.simple.clinic.R
@@ -14,7 +19,6 @@ import org.simple.clinic.activity.placeholder.PlaceholderScreenKey
 import org.simple.clinic.analytics.Analytics
 import org.simple.clinic.di.InjectorProviderContextWrapper
 import org.simple.clinic.main.TheActivity
-import org.simple.clinic.mobius.MobiusActivityDelegate
 import org.simple.clinic.onboarding.OnboardingScreenKey
 import org.simple.clinic.platform.crash.CrashReporter
 import org.simple.clinic.router.ScreenResultBus
@@ -51,17 +55,8 @@ class SetupActivity : AppCompatActivity(), UiActions {
     ScreenRouter.create(this, NestedKeyChanger(), screenResults)
   }
 
-  private val delegate by unsafeLazy {
-    MobiusActivityDelegate(
-        events = Observable.never<SetupActivityEvent>(),
-        defaultModel = SetupActivityModel.SETTING_UP,
-        init = SetupActivityInit(),
-        update = SetupActivityUpdate(),
-        effectHandler = effectHandlerFactory.create(this).build(),
-        modelUpdateListener = { /* Nothing to do here */ },
-        crashReporter = crashReporter
-    )
-  }
+  private lateinit var controller: MobiusLoop.Controller<SetupActivityModel, SetupActivityEvent>
+
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -70,21 +65,54 @@ class SetupActivity : AppCompatActivity(), UiActions {
       window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
     }
 
-    delegate.onRestoreInstanceState(savedInstanceState)
+    val model = if (savedInstanceState == null) SetupActivityModel.SETTING_UP else savedInstanceState["model_key"] as SetupActivityModel
+    controller = createController(model, effectHandlerFactory.create(this).build())
+    controller.connect(::connect)
+  }
+
+  private fun createController(
+      model: SetupActivityModel,
+      effectHandler: ObservableTransformer<SetupActivityEffect, SetupActivityEvent>
+  ): MobiusLoop.Controller<SetupActivityModel, SetupActivityEvent> {
+    val loop = RxMobius
+        .loop(SetupActivityUpdate(), effectHandler)
+        .init(SetupActivityInit())
+
+    return MobiusAndroid.controller(loop, model)
+  }
+
+  private fun connect(eventSink: Consumer<SetupActivityEvent>): Connection<SetupActivityModel> {
+
+    // Setup events here
+
+    return object : Connection<SetupActivityModel> {
+      override fun accept(value: SetupActivityModel) {
+        // Update UI here
+      }
+
+      override fun dispose() {
+        // Dispose events here
+      }
+    }
   }
 
   override fun onStart() {
     super.onStart()
-    delegate.start()
+    controller.start()
   }
 
   override fun onStop() {
-    delegate.stop()
+    controller.stop()
     super.onStop()
   }
 
+  override fun onDestroy() {
+    controller.disconnect()
+    super.onDestroy()
+  }
+
   override fun onSaveInstanceState(outState: Bundle) {
-    delegate.onSaveInstanceState(outState)
+    outState.putParcelable("model_key", controller.model)
     super.onSaveInstanceState(outState)
   }
 
