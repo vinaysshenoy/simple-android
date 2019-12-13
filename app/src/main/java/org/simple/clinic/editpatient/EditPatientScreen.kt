@@ -1,6 +1,7 @@
 package org.simple.clinic.editpatient
 
 import android.content.Context
+import android.os.Bundle
 import android.os.Parcelable
 import android.util.AttributeSet
 import android.widget.RadioButton
@@ -14,7 +15,13 @@ import androidx.transition.TransitionSet
 import com.jakewharton.rxbinding2.view.RxView
 import com.jakewharton.rxbinding2.widget.RxRadioGroup
 import com.jakewharton.rxbinding2.widget.RxTextView
+import com.spotify.mobius.Connection
+import com.spotify.mobius.MobiusLoop
+import com.spotify.mobius.android.MobiusAndroid
+import com.spotify.mobius.functions.Consumer
+import com.spotify.mobius.rx2.RxMobius
 import io.reactivex.Observable
+import io.reactivex.ObservableTransformer
 import io.reactivex.rxkotlin.cast
 import kotlinx.android.synthetic.main.screen_edit_patient.view.*
 import org.simple.clinic.R
@@ -30,7 +37,6 @@ import org.simple.clinic.editpatient.EditPatientValidationError.PHONE_NUMBER_LEN
 import org.simple.clinic.editpatient.EditPatientValidationError.PHONE_NUMBER_LENGTH_TOO_SHORT
 import org.simple.clinic.editpatient.EditPatientValidationError.STATE_EMPTY
 import org.simple.clinic.main.TheActivity
-import org.simple.clinic.mobius.MobiusDelegate
 import org.simple.clinic.patient.Gender
 import org.simple.clinic.patient.Gender.Female
 import org.simple.clinic.patient.Gender.Male
@@ -79,40 +85,11 @@ class EditPatientScreen(context: Context, attributeSet: AttributeSet) : Relative
   @Inject
   lateinit var effectHandlerFactory: EditPatientEffectHandler.Factory
 
+  private lateinit var screenModel: EditPatientModel
+  private lateinit var controller: MobiusLoop.Controller<EditPatientModel, EditPatientEvent>
+
   private val screenKey by unsafeLazy {
     screenRouter.key<EditPatientScreenKey>(this)
-  }
-
-  private val viewRenderer = EditPatientViewRenderer(this)
-
-  private val events: Observable<EditPatientEvent>
-    get() = Observable.mergeArray(
-        saveClicks(),
-        nameTextChanges(),
-        phoneNumberTextChanges(),
-        districtTextChanges(),
-        stateTextChanges(),
-        colonyTextChanges(),
-        genderChanges(),
-        dateOfBirthTextChanges(),
-        dateOfBirthFocusChanges(),
-        ageTextChanges(),
-        backClicks()
-    ).compose(ReportAnalyticsEvents())
-        .cast()
-
-  private val delegate by unsafeLazy {
-    val (patient, address, phoneNumber) = screenKey
-
-    MobiusDelegate(
-        events,
-        EditPatientModel.from(patient, address, phoneNumber, dateOfBirthFormat),
-        EditPatientInit(patient, address, phoneNumber),
-        EditPatientUpdate(numberValidator, dateOfBirthValidator),
-        effectHandlerFactory.create(this).build(),
-        viewRenderer::render,
-        crashReporter
-    )
   }
 
   override fun onFinishInflate() {
@@ -123,26 +100,91 @@ class EditPatientScreen(context: Context, attributeSet: AttributeSet) : Relative
 
     TheActivity.component.inject(this)
 
-    delegate.prepare()
-
+    val (patient, address, phoneNumber) = screenKey
+    screenModel = EditPatientModel.from(patient, address, phoneNumber, dateOfBirthFormat)
   }
 
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
-    delegate.start()
+    controller = createController(screenModel, effectHandlerFactory.create(this).build())
+    controller.connect(::connect)
+    controller.start()
+  }
+
+  private fun connect(eventSink: Consumer<EditPatientEvent>): Connection<EditPatientModel> {
+
+    // Setup events here
+    val events: Observable<EditPatientEvent> = Observable
+        .mergeArray(
+            saveClicks(),
+            nameTextChanges(),
+            phoneNumberTextChanges(),
+            districtTextChanges(),
+            stateTextChanges(),
+            colonyTextChanges(),
+            genderChanges(),
+            dateOfBirthTextChanges(),
+            dateOfBirthFocusChanges(),
+            ageTextChanges(),
+            backClicks()
+        )
+        .compose(ReportAnalyticsEvents())
+        .cast()
+
+    val eventsDisposable = events.subscribe(eventSink::accept)
+
+    return object : Connection<EditPatientModel> {
+      val viewRenderer = EditPatientViewRenderer(this@EditPatientScreen)
+
+      override fun accept(value: EditPatientModel) {
+        // Update UI here
+        viewRenderer.render(value)
+      }
+
+      override fun dispose() {
+        // Dispose events here
+        eventsDisposable.dispose()
+      }
+    }
+  }
+
+  private fun createController(
+      model: EditPatientModel,
+      effectHandler: ObservableTransformer<EditPatientEffect, EditPatientEvent>
+  ): MobiusLoop.Controller<EditPatientModel, EditPatientEvent> {
+    val (patient, address, phoneNumber) = screenKey
+
+    val loop = RxMobius
+        .loop(EditPatientUpdate(numberValidator, dateOfBirthValidator), effectHandler)
+        .init(EditPatientInit(patient, address, phoneNumber))
+
+    return MobiusAndroid.controller(loop, model)
   }
 
   override fun onDetachedFromWindow() {
-    delegate.stop()
+    controller.stop()
+    controller.disconnect()
     super.onDetachedFromWindow()
   }
 
   override fun onSaveInstanceState(): Parcelable? {
-    return delegate.onSaveInstanceState(super.onSaveInstanceState())
+    val savedState = super.onSaveInstanceState()
+
+    val bundle = Bundle()
+    bundle.putParcelable("view_state", savedState)
+    bundle.putParcelable("model_key", controller.model)
+
+    return bundle
   }
 
   override fun onRestoreInstanceState(state: Parcelable?) {
-    val viewState = delegate.onRestoreInstanceState(state)
+    val bundle = state as Bundle
+
+    val viewState = bundle["view_state"] as Parcelable
+
+    val model = bundle["model_key"] as EditPatientModel
+    screenModel = model
+
     super.onRestoreInstanceState(viewState)
   }
 
