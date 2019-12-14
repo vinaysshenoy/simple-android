@@ -1,5 +1,6 @@
 package org.simple.clinic.summary
 
+import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.ObservableSource
 import io.reactivex.ObservableTransformer
@@ -33,7 +34,6 @@ import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.summary.OpenIntention.LinkIdWithPatient
 import org.simple.clinic.summary.OpenIntention.ViewExistingPatient
 import org.simple.clinic.summary.OpenIntention.ViewNewPatient
-import org.simple.clinic.summary.addphone.MissingPhoneReminderRepository
 import org.simple.clinic.util.Just
 import org.simple.clinic.util.None
 import org.simple.clinic.util.exhaustive
@@ -51,9 +51,9 @@ class PatientSummaryScreenController @Inject constructor(
     private val prescriptionRepository: PrescriptionRepository,
     private val medicalHistoryRepository: MedicalHistoryRepository,
     private val appointmentRepository: AppointmentRepository,
-    private val missingPhoneReminderRepository: MissingPhoneReminderRepository,
     private val numberOfBpsToDisplaySupplier: Function0<Int>,
-    private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>
+    private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
+    private val markReminderAsShownConsumer: Function1<UUID, Completable>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -377,8 +377,7 @@ class PatientSummaryScreenController @Inject constructor(
               .take(1)
               .filter { missing -> missing }
               .flatMap {
-                missingPhoneReminderRepository
-                    .markReminderAsShownFor(patientUuid)
+                markReminderAsShownConsumer.call(patientUuid)
                     .andThen(Observable.just({ ui: Ui -> ui.showAddPhoneDialog(patientUuid) }))
               }
         }

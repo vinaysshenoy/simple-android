@@ -2,6 +2,7 @@ package org.simple.clinic.summary
 
 import dagger.Module
 import dagger.Provides
+import io.reactivex.Completable
 import io.reactivex.Observable
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
@@ -19,5 +20,10 @@ class PatientSummaryScreenControllerDependencies {
   @Provides
   fun bindHasShownMissingPhoneReminderProvider(repository: MissingPhoneReminderRepository): Function1<UUID, Observable<Boolean>> {
     return Function1 { repository.hasShownReminderFor(it).toObservable() }
+  }
+
+  @Provides
+  fun bindMarkReminderAsShownConsumer(repository: MissingPhoneReminderRepository): Function1<UUID, Completable> {
+    return Function1 { repository.markReminderAsShownFor(it) }
   }
 }

@@ -10,7 +10,6 @@ import com.nhaarman.mockito_kotlin.verify
 import com.nhaarman.mockito_kotlin.whenever
 import io.reactivex.Completable
 import io.reactivex.Observable
-import io.reactivex.Single
 import io.reactivex.disposables.Disposable
 import io.reactivex.subjects.PublishSubject
 import junitparams.JUnitParamsRunner
@@ -54,7 +53,6 @@ import org.simple.clinic.patient.businessid.Identifier
 import org.simple.clinic.patient.businessid.Identifier.IdentifierType.BpPassport
 import org.simple.clinic.summary.PatientSummaryScreenControllerTest.GoBackToScreen.HOME
 import org.simple.clinic.summary.PatientSummaryScreenControllerTest.GoBackToScreen.PREVIOUS
-import org.simple.clinic.summary.addphone.MissingPhoneReminderRepository
 import org.simple.clinic.util.Just
 import org.simple.clinic.util.None
 import org.simple.clinic.util.Optional
@@ -81,7 +79,6 @@ class PatientSummaryScreenControllerTest {
   private val appointmentRepository = mock<AppointmentRepository>()
   private val patientUuid = UUID.fromString("d2fe1916-b76a-4bb6-b7e5-e107f00c3163")
   private val utcClock = TestUtcClock()
-  private val missingPhoneReminderRepository = mock<MissingPhoneReminderRepository>()
 
   private val uiEvents = PublishSubject.create<UiEvent>()
   private val reporter = MockAnalyticsReporter()
@@ -373,13 +370,19 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention
   ) {
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
-    whenever(missingPhoneReminderRepository.markReminderAsShownFor(patientUuid)).doReturn(Completable.complete())
 
-    setupControllerWithScreenCreated(openIntention, hasShownMissingPhoneReminder = false)
+    val markReminderAsShownCompletable = mock<Function1<UUID, Completable>>()
+    whenever(markReminderAsShownCompletable.call(patientUuid)).doReturn(Completable.complete())
+
+    setupControllerWithScreenCreated(
+        openIntention,
+        hasShownMissingPhoneReminder = false,
+        markReminderAsShownCompletable = markReminderAsShownCompletable
+    )
     uiEvents.onNext(PatientSummaryBloodPressureSaved)
 
     verify(ui).showAddPhoneDialog(patientUuid)
-    verify(missingPhoneReminderRepository).markReminderAsShownFor(patientUuid)
+    verify(markReminderAsShownCompletable).call(patientUuid)
   }
 
   @Test
@@ -388,13 +391,11 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention
   ) {
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
-    whenever(missingPhoneReminderRepository.hasShownReminderFor(patientUuid)).doReturn(Single.just(false))
-    whenever(missingPhoneReminderRepository.markReminderAsShownFor(patientUuid)).doReturn(Completable.complete())
 
     setupControllerWithScreenCreated(openIntention)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
-    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
+    //    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
   }
 
   @Test
@@ -403,12 +404,11 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention
   ) {
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
-    whenever(missingPhoneReminderRepository.hasShownReminderFor(patientUuid)).doReturn(Single.just(true))
 
     setupControllerWithScreenCreated(openIntention)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
-    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
+    //    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
   }
 
   @Test
@@ -416,12 +416,11 @@ class PatientSummaryScreenControllerTest {
   fun `when an existing patient has a phone number, then add phone dialog should not be shown`(openIntention: OpenIntention) {
     val phoneNumber = Just(PatientMocker.phoneNumber(number = "101"))
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(phoneNumber))
-    whenever(missingPhoneReminderRepository.hasShownReminderFor(patientUuid)).doReturn(Single.never())
 
     setupControllerWithScreenCreated(openIntention)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
-    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
+    //    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
   }
 
   @Test
@@ -429,24 +428,22 @@ class PatientSummaryScreenControllerTest {
   fun `when a new patient has a phone number, then add phone dialog should not be shown`(openIntention: OpenIntention) {
     val phoneNumber = Just(PatientMocker.phoneNumber(number = "101"))
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(phoneNumber))
-    whenever(missingPhoneReminderRepository.hasShownReminderFor(patientUuid)).doReturn(Single.never())
 
     setupControllerWithScreenCreated(openIntention)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
-    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
+    //    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
   }
 
   @Test
   @Parameters(method = "patient summary open intentions except new patient")
   fun `when a new patient is missing a phone number, then add phone dialog should not be shown`(openIntention: OpenIntention) {
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
-    whenever(missingPhoneReminderRepository.hasShownReminderFor(patientUuid)).doReturn(Single.just(false))
 
     setupControllerWithScreenCreated(openIntention)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
-    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
+    //    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
   }
 
   private fun randomPatientSummaryOpenIntention() = `patient summary open intentions`().shuffled().first()
@@ -670,22 +667,33 @@ class PatientSummaryScreenControllerTest {
       patientUuid: UUID = this.patientUuid,
       screenCreatedTimestamp: Instant = Instant.now(utcClock),
       numberOfBpsToDisplay: Int = this.bpDisplayLimit,
-      hasShownMissingPhoneReminder: Boolean = true
+      hasShownMissingPhoneReminder: Boolean = true,
+      markReminderAsShownCompletable: Function1<UUID, Completable> = Function1 { Completable.complete() }
   ) {
-    setupControllerWithoutScreenCreated(numberOfBpsToDisplay, hasShownMissingPhoneReminder)
+    setupControllerWithoutScreenCreated(
+        numberOfBpsToDisplay = numberOfBpsToDisplay,
+        hasShownMissingPhoneReminder = hasShownMissingPhoneReminder,
+        markReminderAsShownCompletable = markReminderAsShownCompletable
+    )
     uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
 
   private fun setupControllerWithoutScreenCreated(
       numberOfBpsToDisplay: Int = this.bpDisplayLimit,
-      hasShownMissingPhoneReminder: Boolean = true
+      hasShownMissingPhoneReminder: Boolean = true,
+      markReminderAsShownCompletable: Function1<UUID, Completable> = Function1 { Completable.complete() }
   ) {
-    createController(numberOfBpsToDisplay, hasShownMissingPhoneReminder)
+    createController(
+        numberOfBpsToDisplay = numberOfBpsToDisplay,
+        hasShownMissingPhoneReminder = hasShownMissingPhoneReminder,
+        markReminderAsShownCompletable = markReminderAsShownCompletable
+    )
   }
 
   private fun createController(
       numberOfBpsToDisplay: Int,
-      hasShownMissingPhoneReminder: Boolean
+      hasShownMissingPhoneReminder: Boolean,
+      markReminderAsShownCompletable: Function1<UUID, Completable>
   ) {
     val controller = PatientSummaryScreenController(
         patientRepository = patientRepository,
@@ -693,9 +701,9 @@ class PatientSummaryScreenControllerTest {
         prescriptionRepository = prescriptionRepository,
         medicalHistoryRepository = medicalHistoryRepository,
         appointmentRepository = appointmentRepository,
-        missingPhoneReminderRepository = missingPhoneReminderRepository,
         numberOfBpsToDisplaySupplier = Function0 { numberOfBpsToDisplay },
-        hasShownMissingPhoneReminderProvider = Function1 { Observable.just(hasShownMissingPhoneReminder) }
+        hasShownMissingPhoneReminderProvider = Function1 { Observable.just(hasShownMissingPhoneReminder) },
+        markReminderAsShownConsumer = markReminderAsShownCompletable
     )
 
     controllerSubscription = uiEvents
