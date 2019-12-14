@@ -5,7 +5,7 @@ import dagger.Provides
 import org.simple.clinic.AppDatabase
 import org.simple.clinic.remoteconfig.ConfigReader
 
-@Module
+@Module(includes = [PatientSummaryScreenControllerDependencies::class])
 class PatientSummaryModule {
 
   @Provides
