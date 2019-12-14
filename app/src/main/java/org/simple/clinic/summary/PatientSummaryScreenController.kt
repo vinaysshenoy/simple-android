@@ -13,6 +13,7 @@ import org.simple.clinic.ReportAnalyticsEvents
 import org.simple.clinic.analytics.Analytics
 import org.simple.clinic.bp.BloodPressureRepository
 import org.simple.clinic.drugs.PrescriptionRepository
+import org.simple.clinic.functions.Function0
 import org.simple.clinic.medicalhistory.Answer
 import org.simple.clinic.medicalhistory.MedicalHistory
 import org.simple.clinic.medicalhistory.MedicalHistoryQuestion
@@ -34,7 +35,6 @@ import org.simple.clinic.summary.OpenIntention.ViewNewPatient
 import org.simple.clinic.summary.addphone.MissingPhoneReminderRepository
 import org.simple.clinic.util.Just
 import org.simple.clinic.util.None
-import org.simple.clinic.util.UtcClock
 import org.simple.clinic.util.exhaustive
 import org.simple.clinic.util.filterAndUnwrapJust
 import org.simple.clinic.widgets.UiEvent
@@ -51,7 +51,7 @@ class PatientSummaryScreenController @Inject constructor(
     private val medicalHistoryRepository: MedicalHistoryRepository,
     private val appointmentRepository: AppointmentRepository,
     private val missingPhoneReminderRepository: MissingPhoneReminderRepository,
-    private val config: PatientSummaryConfig
+    private val numberOfBpsToDisplaySupplier: Function0<Int>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -131,7 +131,7 @@ class PatientSummaryScreenController @Inject constructor(
 
       val prescribedDrugsStream = patientUuids.flatMap { prescriptionRepository.newestPrescriptionsForPatient(it) }
 
-      val bloodPressures = patientUuids.flatMap { patientUuid -> bpRepository.newestMeasurementsForPatient(patientUuid, config.numberOfBpsToDisplay) }
+      val bloodPressures = patientUuids.flatMap { patientUuid -> bpRepository.newestMeasurementsForPatient(patientUuid, numberOfBpsToDisplaySupplier.call()) }
 
       val medicalHistoryItems = patientUuids.flatMap { medicalHistoryRepository.historyForPatientOrDefault(it) }
 

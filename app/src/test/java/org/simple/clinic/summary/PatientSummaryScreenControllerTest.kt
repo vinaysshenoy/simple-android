@@ -24,6 +24,7 @@ import org.simple.clinic.analytics.Analytics
 import org.simple.clinic.analytics.MockAnalyticsReporter
 import org.simple.clinic.bp.BloodPressureRepository
 import org.simple.clinic.drugs.PrescriptionRepository
+import org.simple.clinic.functions.Function0
 import org.simple.clinic.medicalhistory.Answer
 import org.simple.clinic.medicalhistory.Answer.Unanswered
 import org.simple.clinic.medicalhistory.MedicalHistory
@@ -669,24 +670,21 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention,
       patientUuid: UUID = this.patientUuid,
       screenCreatedTimestamp: Instant = Instant.now(utcClock),
-      numberOfBpPlaceholders: Int = 0,
-      numberOfBpsToDisplay: Int = this.bpDisplayLimit,
-      bpEditableDuration: Duration = Duration.ofMinutes(60)
+      numberOfBpsToDisplay: Int = this.bpDisplayLimit
   ) {
-    setupControllerWithoutScreenCreated(numberOfBpPlaceholders, numberOfBpsToDisplay, bpEditableDuration)
+    setupControllerWithoutScreenCreated(numberOfBpsToDisplay)
     uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
 
   private fun setupControllerWithoutScreenCreated(
-      numberOfBpPlaceholders: Int = 0,
-      numberOfBpsToDisplay: Int = this.bpDisplayLimit,
-      bpEditableDuration: Duration = Duration.ofMinutes(60)
+      numberOfBpsToDisplay: Int = this.bpDisplayLimit
   ) {
-    val config = PatientSummaryConfig(numberOfBpPlaceholders, numberOfBpsToDisplay, bpEditableDuration)
-    createController(config)
+    createController(numberOfBpsToDisplay)
   }
 
-  private fun createController(config: PatientSummaryConfig) {
+  private fun createController(
+      numberOfBpsToDisplay: Int
+  ) {
     val controller = PatientSummaryScreenController(
         patientRepository = patientRepository,
         bpRepository = bpRepository,
@@ -694,7 +692,7 @@ class PatientSummaryScreenControllerTest {
         medicalHistoryRepository = medicalHistoryRepository,
         appointmentRepository = appointmentRepository,
         missingPhoneReminderRepository = missingPhoneReminderRepository,
-        config = config
+        numberOfBpsToDisplaySupplier = Function0 { numberOfBpsToDisplay }
     )
 
     controllerSubscription = uiEvents
