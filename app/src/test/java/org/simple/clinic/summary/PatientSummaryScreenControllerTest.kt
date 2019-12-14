@@ -25,6 +25,7 @@ import org.simple.clinic.analytics.MockAnalyticsReporter
 import org.simple.clinic.bp.BloodPressureRepository
 import org.simple.clinic.drugs.PrescriptionRepository
 import org.simple.clinic.functions.Function0
+import org.simple.clinic.functions.Function1
 import org.simple.clinic.medicalhistory.Answer
 import org.simple.clinic.medicalhistory.Answer.Unanswered
 import org.simple.clinic.medicalhistory.MedicalHistory
@@ -96,7 +97,6 @@ class PatientSummaryScreenControllerTest {
     whenever(prescriptionRepository.newestPrescriptionsForPatient(patientUuid)).doReturn(Observable.never())
     whenever(medicalHistoryRepository.historyForPatientOrDefault(patientUuid)).doReturn(Observable.never())
     whenever(appointmentRepository.lastCreatedAppointmentForPatient(patientUuid)).doReturn(Observable.never())
-    whenever(missingPhoneReminderRepository.hasShownReminderFor(patientUuid)).doReturn(Single.never())
     whenever(patientRepository.bpPassportForPatient(patientUuid)).doReturn(Observable.never())
 
     Analytics.addReporter(reporter)
@@ -373,10 +373,9 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention
   ) {
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
-    whenever(missingPhoneReminderRepository.hasShownReminderFor(patientUuid)).doReturn(Single.just(false))
     whenever(missingPhoneReminderRepository.markReminderAsShownFor(patientUuid)).doReturn(Completable.complete())
 
-    setupControllerWithScreenCreated(openIntention)
+    setupControllerWithScreenCreated(openIntention, hasShownMissingPhoneReminder = false)
     uiEvents.onNext(PatientSummaryBloodPressureSaved)
 
     verify(ui).showAddPhoneDialog(patientUuid)
@@ -670,20 +669,23 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention,
       patientUuid: UUID = this.patientUuid,
       screenCreatedTimestamp: Instant = Instant.now(utcClock),
-      numberOfBpsToDisplay: Int = this.bpDisplayLimit
+      numberOfBpsToDisplay: Int = this.bpDisplayLimit,
+      hasShownMissingPhoneReminder: Boolean = true
   ) {
-    setupControllerWithoutScreenCreated(numberOfBpsToDisplay)
+    setupControllerWithoutScreenCreated(numberOfBpsToDisplay, hasShownMissingPhoneReminder)
     uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
 
   private fun setupControllerWithoutScreenCreated(
-      numberOfBpsToDisplay: Int = this.bpDisplayLimit
+      numberOfBpsToDisplay: Int = this.bpDisplayLimit,
+      hasShownMissingPhoneReminder: Boolean = true
   ) {
-    createController(numberOfBpsToDisplay)
+    createController(numberOfBpsToDisplay, hasShownMissingPhoneReminder)
   }
 
   private fun createController(
-      numberOfBpsToDisplay: Int
+      numberOfBpsToDisplay: Int,
+      hasShownMissingPhoneReminder: Boolean
   ) {
     val controller = PatientSummaryScreenController(
         patientRepository = patientRepository,
@@ -692,7 +694,8 @@ class PatientSummaryScreenControllerTest {
         medicalHistoryRepository = medicalHistoryRepository,
         appointmentRepository = appointmentRepository,
         missingPhoneReminderRepository = missingPhoneReminderRepository,
-        numberOfBpsToDisplaySupplier = Function0 { numberOfBpsToDisplay }
+        numberOfBpsToDisplaySupplier = Function0 { numberOfBpsToDisplay },
+        hasShownMissingPhoneReminderProvider = Function1 { Observable.just(hasShownMissingPhoneReminder) }
     )
 
     controllerSubscription = uiEvents

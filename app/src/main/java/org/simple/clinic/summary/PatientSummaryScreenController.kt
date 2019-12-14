@@ -14,6 +14,7 @@ import org.simple.clinic.analytics.Analytics
 import org.simple.clinic.bp.BloodPressureRepository
 import org.simple.clinic.drugs.PrescriptionRepository
 import org.simple.clinic.functions.Function0
+import org.simple.clinic.functions.Function1
 import org.simple.clinic.medicalhistory.Answer
 import org.simple.clinic.medicalhistory.MedicalHistory
 import org.simple.clinic.medicalhistory.MedicalHistoryQuestion
@@ -51,7 +52,8 @@ class PatientSummaryScreenController @Inject constructor(
     private val medicalHistoryRepository: MedicalHistoryRepository,
     private val appointmentRepository: AppointmentRepository,
     private val missingPhoneReminderRepository: MissingPhoneReminderRepository,
-    private val numberOfBpsToDisplaySupplier: Function0<Int>
+    private val numberOfBpsToDisplaySupplier: Function0<Int>,
+    private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -394,7 +396,7 @@ class PatientSummaryScreenController @Inject constructor(
   private fun isMissingPhoneAndShouldBeReminded(patientUuid: UUID): Observable<Boolean> {
     return patientRepository
         .phoneNumber(patientUuid)
-        .zipWith(hasShownReminderForMissingPhone(patientUuid))
+        .zipWith(hasShownMissingPhoneReminderProvider.call(patientUuid))
         .map { (number, reminderShown) -> number is None && reminderShown.not() }
   }
 
@@ -403,12 +405,6 @@ class PatientSummaryScreenController @Inject constructor(
         .lastCreatedAppointmentForPatient(patientUuid)
         .filterAndUnwrapJust()
         .filter { it.status == Cancelled && it.cancelReason == InvalidPhoneNumber }
-  }
-
-  private fun hasShownReminderForMissingPhone(patientUuid: UUID): Observable<Boolean> {
-    return missingPhoneReminderRepository
-        .hasShownReminderFor(patientUuid)
-        .toObservable()
   }
 
   private fun exitScreenIfLinkIdWithPatientIsCancelled(events: Observable<UiEvent>): Observable<UiChange> {
