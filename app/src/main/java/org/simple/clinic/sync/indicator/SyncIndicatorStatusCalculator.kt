@@ -1,5 +1,6 @@
 package org.simple.clinic.sync.indicator
 
+import androidx.annotation.CheckResult
 import com.f2prateek.rx.preferences2.Preference
 import io.reactivex.disposables.Disposable
 import org.simple.clinic.di.AppScope
@@ -12,7 +13,6 @@ import org.simple.clinic.sync.SyncProgress.SUCCESS
 import org.simple.clinic.sync.SyncProgress.SYNCING
 import org.simple.clinic.util.UtcClock
 import org.simple.clinic.util.scheduler.SchedulersProvider
-import javax.annotation.CheckReturnValue
 import javax.inject.Inject
 
 @AppScope
@@ -23,7 +23,7 @@ class SyncIndicatorStatusCalculator @Inject constructor(
     private val schedulersProvider: SchedulersProvider
 ) {
 
-  @CheckReturnValue
+  @CheckResult
   fun updateSyncResults(): Disposable {
     val syncResultsStream = dataSync
         .streamSyncResults()

@@ -1,9 +1,9 @@
 package org.simple.clinic.sync
 
+import androidx.annotation.CheckResult
 import io.reactivex.disposables.Disposable
-import javax.annotation.CheckReturnValue
 
 interface IDataSyncOnApproval {
-  @CheckReturnValue
+  @CheckResult
   fun sync(): Disposable
 }

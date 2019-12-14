@@ -26,8 +26,18 @@ dependencies {
   implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$versions.kotlin"
   implementation project(":simple-platform")
 
-  api "com.spotify.mobius:mobius-core:$versions.mobius"
-  api "com.spotify.mobius:mobius-rx2:$versions.mobius"
-  api "com.spotify.mobius:mobius-android:$versions.mobius"
-  api "com.spotify.mobius:mobius-extras:$versions.mobius"
+  api("com.spotify.mobius:mobius-core:$versions.mobius") {
+    exclude group: "com.google.code.findbugs", module: "jsr305"
+  }
+  api ("com.spotify.mobius:mobius-rx2:$versions.mobius") {
+    exclude group: "com.google.code.findbugs", module: "jsr305"
+  }
+  api ("com.spotify.mobius:mobius-android:$versions.mobius") {
+    exclude group: "com.google.code.findbugs", module: "jsr305"
+  }
+  api ("com.spotify.mobius:mobius-extras:$versions.mobius") {
+    exclude group: "com.google.code.findbugs", module: "jsr305"
+  }
+
+  implementation "com.google.code.findbugs:jsr305:$versions.jsr305"
 }

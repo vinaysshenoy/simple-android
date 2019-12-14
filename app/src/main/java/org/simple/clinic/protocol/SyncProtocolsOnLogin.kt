@@ -1,12 +1,12 @@
 package org.simple.clinic.protocol
 
 import android.annotation.SuppressLint
+import androidx.annotation.CheckResult
 import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.withLatestFrom
 import io.reactivex.schedulers.Schedulers.io
 import org.simple.clinic.protocol.sync.ProtocolSync
 import org.simple.clinic.user.UserSession
-import javax.annotation.CheckReturnValue
 import javax.inject.Inject
 
 @SuppressLint("CheckResult")
@@ -16,7 +16,7 @@ class SyncProtocolsOnLogin @Inject constructor(
     private val protocolRepository: ProtocolRepository
 ) {
 
-  @CheckReturnValue
+  @CheckResult
   fun listen(): Disposable {
     return userSession.loggedInUser()
         .withLatestFrom(protocolRepository.recordCount())

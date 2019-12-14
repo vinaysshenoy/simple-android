@@ -1,11 +1,11 @@
 package org.simple.clinic.sync
 
+import androidx.annotation.CheckResult
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import org.simple.clinic.protocol.SyncProtocolsOnLogin
 import org.simple.clinic.sync.indicator.SyncIndicatorStatusCalculator
 import org.simple.clinic.util.scheduler.SchedulersProvider
-import javax.annotation.CheckReturnValue
 import javax.inject.Inject
 
 class SyncSetup @Inject constructor(
@@ -17,7 +17,7 @@ class SyncSetup @Inject constructor(
     private val schedulersProvider: SchedulersProvider
 ) {
 
-  @CheckReturnValue
+  @CheckResult
   fun run(): Disposable {
     return CompositeDisposable().apply {
       addAll(
