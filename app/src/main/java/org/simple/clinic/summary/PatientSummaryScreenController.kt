@@ -29,14 +29,13 @@ import org.simple.clinic.medicalhistory.MedicalHistoryQuestion.IS_ON_TREATMENT_F
 import org.simple.clinic.overdue.Appointment
 import org.simple.clinic.overdue.Appointment.Status.Cancelled
 import org.simple.clinic.overdue.AppointmentCancelReason.InvalidPhoneNumber
+import org.simple.clinic.patient.Patient
 import org.simple.clinic.patient.PatientAddress
 import org.simple.clinic.patient.PatientPhoneNumber
-import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.patient.businessid.BusinessId
 import org.simple.clinic.summary.OpenIntention.LinkIdWithPatient
 import org.simple.clinic.summary.OpenIntention.ViewExistingPatient
 import org.simple.clinic.summary.OpenIntention.ViewNewPatient
-import org.simple.clinic.util.Just
 import org.simple.clinic.util.None
 import org.simple.clinic.util.Optional
 import org.simple.clinic.util.exhaustive
@@ -50,7 +49,6 @@ typealias Ui = PatientSummaryScreenUi
 typealias UiChange = (Ui) -> Unit
 
 class PatientSummaryScreenController @Inject constructor(
-    private val patientRepository: PatientRepository,
     private val numberOfBpsToDisplaySupplier: Function0<Int>,
     private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
     private val markReminderAsShownConsumer: Function1<UUID, Completable>,
@@ -64,7 +62,8 @@ class PatientSummaryScreenController @Inject constructor(
     private val patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>,
     private val patientPhoneNumberProvider: Function1<UUID, Observable<Optional<PatientPhoneNumber>>>,
     private val patientBpPassportProvider: Function1<UUID, Observable<Optional<BusinessId>>>,
-    private val patientAddressProvider: Function1<UUID, Observable<PatientAddress>>
+    private val patientAddressProvider: Function1<UUID, Observable<PatientAddress>>,
+    private val patientProvider: Function1<UUID, Observable<Patient>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -105,11 +104,7 @@ class PatientSummaryScreenController @Inject constructor(
         .map { it.patientUuid }
 
     val sharedPatients = patientUuid
-        .flatMap { patientRepository.patient(it) }
-        .map {
-          // We do not expect the patient to get deleted while this screen is already open.
-          (it as Just).value
-        }
+        .flatMap(patientProvider::call)
         .replay(1)
         .refCount()
 

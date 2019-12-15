@@ -2,11 +2,9 @@ package org.simple.clinic.summary
 
 import com.google.common.truth.Truth.assertThat
 import com.nhaarman.mockito_kotlin.any
-import com.nhaarman.mockito_kotlin.doReturn
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.never
 import com.nhaarman.mockito_kotlin.verify
-import com.nhaarman.mockito_kotlin.whenever
 import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
@@ -51,9 +49,7 @@ import org.simple.clinic.patient.businessid.Identifier
 import org.simple.clinic.patient.businessid.Identifier.IdentifierType.BpPassport
 import org.simple.clinic.summary.PatientSummaryScreenControllerTest.GoBackToScreen.HOME
 import org.simple.clinic.summary.PatientSummaryScreenControllerTest.GoBackToScreen.PREVIOUS
-import org.simple.clinic.util.Just
 import org.simple.clinic.util.None
-import org.simple.clinic.util.Optional
 import org.simple.clinic.util.RxErrorsRule
 import org.simple.clinic.util.TestUtcClock
 import org.simple.clinic.util.randomMedicalHistoryAnswer
@@ -70,10 +66,9 @@ class PatientSummaryScreenControllerTest {
   val rxErrorsRule = RxErrorsRule()
 
   private val ui = mock<PatientSummaryScreenUi>()
-  private val patientRepository = mock<PatientRepository>()
+
   private val patientUuid = UUID.fromString("d2fe1916-b76a-4bb6-b7e5-e107f00c3163")
   private val utcClock = TestUtcClock()
-
   private val uiEvents = PublishSubject.create<UiEvent>()
   private val reporter = MockAnalyticsReporter()
   private val bpDisplayLimit = 100
@@ -91,13 +86,12 @@ class PatientSummaryScreenControllerTest {
       identifier = Identifier(value = "8c3fdfc8-370c-4756-a215-9d453b846f77", type = BpPassport)
   )
   private val patientAddress = PatientMocker.address(uuid = UUID.fromString("85e53122-5947-49f4-9d97-23f4d3ba027b"))
+  private val patient = PatientMocker.patient(uuid = patientUuid, addressUuid = patientAddress.uuid)
 
   private lateinit var controllerSubscription: Disposable
 
   @Before
   fun setUp() {
-    whenever(patientRepository.patient(patientUuid)).doReturn(Observable.never())
-
     Analytics.addReporter(reporter)
   }
 
@@ -116,13 +110,12 @@ class PatientSummaryScreenControllerTest {
     val address = PatientMocker.address(uuid = addressUuid)
     val phoneNumber = None
 
-    whenever(patientRepository.patient(patientUuid)).doReturn(Observable.just<Optional<Patient>>(Just(patient)))
-
     setupControllerWithScreenCreated(
         openIntention = intention,
         patientPhoneNumber = null,
         patientBpPassport = bpPassport,
-        patientAddress = address
+        patientAddress = address,
+        patient = patient
     )
 
     verify(ui).populatePatientProfile(PatientSummaryProfile(patient, address, phoneNumber, bpPassport.toOptional()))
@@ -641,7 +634,8 @@ class PatientSummaryScreenControllerTest {
       hasPatientDataChanged: Boolean = false,
       patientPhoneNumber: PatientPhoneNumber? = this.phoneNumber,
       patientBpPassport: BusinessId? = this.bpPassport,
-      patientAddress: PatientAddress = this.patientAddress
+      patientAddress: PatientAddress = this.patientAddress,
+      patient: Patient = this.patient
   ) {
     setupControllerWithoutScreenCreated(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
@@ -656,7 +650,8 @@ class PatientSummaryScreenControllerTest {
         hasPatientDataChanged = hasPatientDataChanged,
         patientPhoneNumber = patientPhoneNumber,
         patientBpPassport = patientBpPassport,
-        patientAddress = patientAddress
+        patientAddress = patientAddress,
+        patient = patient
     )
     uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
@@ -674,7 +669,8 @@ class PatientSummaryScreenControllerTest {
       hasPatientDataChanged: Boolean = false,
       patientPhoneNumber: PatientPhoneNumber? = this.phoneNumber,
       patientBpPassport: BusinessId? = this.bpPassport,
-      patientAddress: PatientAddress = this.patientAddress
+      patientAddress: PatientAddress = this.patientAddress,
+      patient: Patient = this.patient
   ) {
     createController(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
@@ -689,7 +685,8 @@ class PatientSummaryScreenControllerTest {
         hasPatientDataChanged = hasPatientDataChanged,
         patientPhoneNumber = patientPhoneNumber,
         patientBpPassport = patientBpPassport,
-        patientAddress = patientAddress
+        patientAddress = patientAddress,
+        patient = patient
     )
   }
 
@@ -706,10 +703,10 @@ class PatientSummaryScreenControllerTest {
       hasPatientDataChanged: Boolean,
       patientPhoneNumber: PatientPhoneNumber?,
       patientBpPassport: BusinessId?,
-      patientAddress: PatientAddress
+      patientAddress: PatientAddress,
+      patient: Patient
   ) {
     val controller = PatientSummaryScreenController(
-        patientRepository = patientRepository,
         numberOfBpsToDisplaySupplier = Function0 { numberOfBpsToDisplay },
         hasShownMissingPhoneReminderProvider = Function1 { Observable.just(hasShownMissingPhoneReminder) },
         markReminderAsShownConsumer = markReminderAsShownCompletable,
@@ -723,7 +720,8 @@ class PatientSummaryScreenControllerTest {
         patientDataChangedSinceProvider = Function2 { _, _ -> hasPatientDataChanged },
         patientPhoneNumberProvider = Function1 { Observable.just(patientPhoneNumber.toOptional()) },
         patientBpPassportProvider = Function1 { Observable.just(patientBpPassport.toOptional()) },
-        patientAddressProvider = Function1 { Observable.just(patientAddress) }
+        patientAddressProvider = Function1 { Observable.just(patientAddress) },
+        patientProvider = Function1 { Observable.just(patient) }
     )
 
     controllerSubscription = uiEvents
