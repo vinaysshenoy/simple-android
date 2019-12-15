@@ -17,6 +17,7 @@ import org.simple.clinic.overdue.Appointment
 import org.simple.clinic.overdue.AppointmentRepository
 import org.simple.clinic.patient.PatientPhoneNumber
 import org.simple.clinic.patient.PatientRepository
+import org.simple.clinic.patient.businessid.BusinessId
 import org.simple.clinic.summary.addphone.MissingPhoneReminderRepository
 import org.simple.clinic.util.Optional
 import org.simple.clinic.util.UtcClock
@@ -85,5 +86,10 @@ class PatientSummaryScreenControllerDependencies {
   @Provides
   fun bindPatientPhoneNumberProvider(repository: PatientRepository): Function1<UUID, Observable<Optional<PatientPhoneNumber>>> {
     return Function1 { repository.phoneNumber(it) }
+  }
+
+  @Provides
+  fun bindPatientBpPassportProvider(repository: PatientRepository): Function1<UUID, Observable<Optional<BusinessId>>> {
+    return Function1 { repository.bpPassportForPatient(it) }
   }
 }
