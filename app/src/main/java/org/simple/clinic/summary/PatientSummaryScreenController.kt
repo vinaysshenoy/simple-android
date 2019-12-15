@@ -65,39 +65,6 @@ class PatientSummaryScreenController @Inject constructor(
     private val patientProvider: Function1<UUID, Observable<Patient>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
-  constructor(
-      numberOfBpsToDisplaySupplier: Function0<Int>,
-      hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
-      markReminderAsShownConsumer: Function1<UUID, Completable>,
-      lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>,
-      updateMedicalHistory: Function2<MedicalHistory, Instant, Completable>,
-      utcTimestampProvider: Function0<Instant>,
-      medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
-      patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
-      bloodPressureCountProvider: Function1<UUID, Int>,
-      bloodPressuresProvider: Function2<UUID, Int, Observable<List<BloodPressureMeasurement>>>,
-      patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>,
-      patientPhoneNumberProvider: Function1<UUID, Observable<Optional<PatientPhoneNumber>>>,
-      patientBpPassportProvider: Function1<UUID, Observable<Optional<BusinessId>>>,
-      patientAddressProvider: Function1<UUID, Observable<PatientAddress>>,
-      patientProvider: Function1<UUID, Observable<Patient>>
-  ) : this(
-      hasShownMissingPhoneReminderProvider = hasShownMissingPhoneReminderProvider,
-      markReminderAsShownConsumer = markReminderAsShownConsumer,
-      lastCreatedAppointmentProvider = lastCreatedAppointmentProvider,
-      updateMedicalHistory = updateMedicalHistory,
-      utcTimestampProvider = utcTimestampProvider,
-      medicalHistoryProvider = medicalHistoryProvider,
-      patientPrescriptionProvider = patientPrescriptionProvider,
-      bloodPressureCountProvider = bloodPressureCountProvider,
-      bloodPressuresProvider = Function1 { patientUuid -> bloodPressuresProvider.call(patientUuid, numberOfBpsToDisplaySupplier.call()) },
-      patientDataChangedSinceProvider = patientDataChangedSinceProvider,
-      patientPhoneNumberProvider = patientPhoneNumberProvider,
-      patientBpPassportProvider = patientBpPassportProvider,
-      patientAddressProvider = patientAddressProvider,
-      patientProvider = patientProvider
-  )
-
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
     val replayedEvents = ReplayUntilScreenIsDestroyed(events)
         .compose(mergeWithPatientSummaryChanges())

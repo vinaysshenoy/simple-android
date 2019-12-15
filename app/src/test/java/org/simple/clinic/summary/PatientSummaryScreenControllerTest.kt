@@ -43,7 +43,6 @@ import org.simple.clinic.patient.Patient
 import org.simple.clinic.patient.PatientAddress
 import org.simple.clinic.patient.PatientMocker
 import org.simple.clinic.patient.PatientPhoneNumber
-import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.patient.businessid.BusinessId
 import org.simple.clinic.patient.businessid.Identifier
 import org.simple.clinic.patient.businessid.Identifier.IdentifierType.BpPassport
@@ -71,7 +70,6 @@ class PatientSummaryScreenControllerTest {
   private val utcClock = TestUtcClock()
   private val uiEvents = PublishSubject.create<UiEvent>()
   private val reporter = MockAnalyticsReporter()
-  private val bpDisplayLimit = 100
   private val medicalHistory = PatientMocker.medicalHistory(
       uuid = UUID.fromString("30a58b92-d5d9-420c-b591-7ea79cf94ee7"),
       patientUuid = patientUuid
@@ -622,7 +620,6 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention,
       patientUuid: UUID = this.patientUuid,
       screenCreatedTimestamp: Instant = Instant.now(utcClock),
-      numberOfBpsToDisplay: Int = this.bpDisplayLimit,
       hasShownMissingPhoneReminder: Boolean = true,
       markReminderAsShownCompletable: Function1<UUID, Completable> = Function1 { Completable.complete() },
       lastCreatedAppointment: Appointment? = null,
@@ -638,7 +635,6 @@ class PatientSummaryScreenControllerTest {
       patient: Patient = this.patient
   ) {
     setupControllerWithoutScreenCreated(
-        numberOfBpsToDisplay = numberOfBpsToDisplay,
         hasShownMissingPhoneReminder = hasShownMissingPhoneReminder,
         markReminderAsShownCompletable = markReminderAsShownCompletable,
         lastCreatedAppointment = lastCreatedAppointment,
@@ -657,7 +653,6 @@ class PatientSummaryScreenControllerTest {
   }
 
   private fun setupControllerWithoutScreenCreated(
-      numberOfBpsToDisplay: Int = this.bpDisplayLimit,
       hasShownMissingPhoneReminder: Boolean = true,
       markReminderAsShownCompletable: Function1<UUID, Completable> = Function1 { Completable.complete() },
       lastCreatedAppointment: Appointment? = null,
@@ -673,7 +668,6 @@ class PatientSummaryScreenControllerTest {
       patient: Patient = this.patient
   ) {
     createController(
-        numberOfBpsToDisplay = numberOfBpsToDisplay,
         hasShownMissingPhoneReminder = hasShownMissingPhoneReminder,
         markReminderAsShownCompletable = markReminderAsShownCompletable,
         lastCreatedAppointment = lastCreatedAppointment,
@@ -691,7 +685,6 @@ class PatientSummaryScreenControllerTest {
   }
 
   private fun createController(
-      numberOfBpsToDisplay: Int,
       hasShownMissingPhoneReminder: Boolean,
       markReminderAsShownCompletable: Function1<UUID, Completable>,
       lastCreatedAppointment: Appointment?,
@@ -707,7 +700,6 @@ class PatientSummaryScreenControllerTest {
       patient: Patient
   ) {
     val controller = PatientSummaryScreenController(
-        numberOfBpsToDisplaySupplier = Function0 { numberOfBpsToDisplay },
         hasShownMissingPhoneReminderProvider = Function1 { Observable.just(hasShownMissingPhoneReminder) },
         markReminderAsShownConsumer = markReminderAsShownCompletable,
         lastCreatedAppointmentProvider = Function1 { if (lastCreatedAppointment == null) Observable.never() else Observable.just(lastCreatedAppointment) },
@@ -716,7 +708,7 @@ class PatientSummaryScreenControllerTest {
         medicalHistoryProvider = Function1 { Observable.just(medicalHistory) },
         patientPrescriptionProvider = Function1 { Observable.just(prescription) },
         bloodPressureCountProvider = Function1 { bpCount },
-        bloodPressuresProvider = Function2 { _, _ -> Observable.just(bps) },
+        bloodPressuresProvider = Function1 { Observable.just(bps) },
         patientDataChangedSinceProvider = Function2 { _, _ -> hasPatientDataChanged },
         patientPhoneNumberProvider = Function1 { Observable.just(patientPhoneNumber.toOptional()) },
         patientBpPassportProvider = Function1 { Observable.just(patientBpPassport.toOptional()) },
