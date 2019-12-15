@@ -12,7 +12,7 @@ import io.reactivex.rxkotlin.zipWith
 import org.simple.clinic.ReplayUntilScreenIsDestroyed
 import org.simple.clinic.ReportAnalyticsEvents
 import org.simple.clinic.analytics.Analytics
-import org.simple.clinic.bp.BloodPressureRepository
+import org.simple.clinic.bp.BloodPressureMeasurement
 import org.simple.clinic.drugs.PrescribedDrug
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
@@ -47,7 +47,6 @@ typealias UiChange = (Ui) -> Unit
 
 class PatientSummaryScreenController @Inject constructor(
     private val patientRepository: PatientRepository,
-    private val bpRepository: BloodPressureRepository,
     private val numberOfBpsToDisplaySupplier: Function0<Int>,
     private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
     private val markReminderAsShownConsumer: Function1<UUID, Completable>,
@@ -56,7 +55,8 @@ class PatientSummaryScreenController @Inject constructor(
     private val utcTimestampProvider: Function0<Instant>,
     private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
     private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
-    private val bloodPressureCountProvider: Function1<UUID, Int>
+    private val bloodPressureCountProvider: Function1<UUID, Int>,
+    private val bloodPressuresProvider: Function2<UUID, Int, Observable<List<BloodPressureMeasurement>>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -136,7 +136,7 @@ class PatientSummaryScreenController @Inject constructor(
 
       val prescribedDrugsStream = patientUuids.flatMap(patientPrescriptionProvider::call)
 
-      val bloodPressures = patientUuids.flatMap { patientUuid -> bpRepository.newestMeasurementsForPatient(patientUuid, numberOfBpsToDisplaySupplier.call()) }
+      val bloodPressures = patientUuids.flatMap { patientUuid -> bloodPressuresProvider.call(patientUuid, numberOfBpsToDisplaySupplier.call()) }
 
       val medicalHistoryItems = patientUuids.flatMap(medicalHistoryProvider::call)
 
