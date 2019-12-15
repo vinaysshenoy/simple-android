@@ -29,7 +29,6 @@ import org.simple.clinic.medicalhistory.MedicalHistoryRepository
 import org.simple.clinic.overdue.Appointment
 import org.simple.clinic.overdue.Appointment.Status.Cancelled
 import org.simple.clinic.overdue.AppointmentCancelReason.InvalidPhoneNumber
-import org.simple.clinic.overdue.AppointmentRepository
 import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.summary.OpenIntention.LinkIdWithPatient
 import org.simple.clinic.summary.OpenIntention.ViewExistingPatient
@@ -50,10 +49,10 @@ class PatientSummaryScreenController @Inject constructor(
     private val bpRepository: BloodPressureRepository,
     private val prescriptionRepository: PrescriptionRepository,
     private val medicalHistoryRepository: MedicalHistoryRepository,
-    private val appointmentRepository: AppointmentRepository,
     private val numberOfBpsToDisplaySupplier: Function0<Int>,
     private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
-    private val markReminderAsShownConsumer: Function1<UUID, Completable>
+    private val markReminderAsShownConsumer: Function1<UUID, Completable>,
+    private val lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -400,9 +399,7 @@ class PatientSummaryScreenController @Inject constructor(
   }
 
   private fun lastCancelledAppointmentWithInvalidPhone(patientUuid: UUID): Observable<Appointment> {
-    return appointmentRepository
-        .lastCreatedAppointmentForPatient(patientUuid)
-        .filterAndUnwrapJust()
+    return lastCreatedAppointmentProvider.call(patientUuid)
         .filter { it.status == Cancelled && it.cancelReason == InvalidPhoneNumber }
   }
 

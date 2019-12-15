@@ -42,7 +42,6 @@ import org.simple.clinic.overdue.Appointment.Status.Cancelled
 import org.simple.clinic.overdue.Appointment.Status.Scheduled
 import org.simple.clinic.overdue.AppointmentCancelReason
 import org.simple.clinic.overdue.AppointmentCancelReason.InvalidPhoneNumber
-import org.simple.clinic.overdue.AppointmentRepository
 import org.simple.clinic.patient.Patient
 import org.simple.clinic.patient.PatientAddress
 import org.simple.clinic.patient.PatientMocker
@@ -77,7 +76,6 @@ class PatientSummaryScreenControllerTest {
   private val bpRepository = mock<BloodPressureRepository>()
   private val prescriptionRepository = mock<PrescriptionRepository>()
   private val medicalHistoryRepository = mock<MedicalHistoryRepository>()
-  private val appointmentRepository = mock<AppointmentRepository>()
   private val patientUuid = UUID.fromString("d2fe1916-b76a-4bb6-b7e5-e107f00c3163")
   private val utcClock = TestUtcClock()
 
@@ -94,7 +92,6 @@ class PatientSummaryScreenControllerTest {
     whenever(bpRepository.newestMeasurementsForPatient(patientUuid, bpDisplayLimit)).doReturn(Observable.never())
     whenever(prescriptionRepository.newestPrescriptionsForPatient(patientUuid)).doReturn(Observable.never())
     whenever(medicalHistoryRepository.historyForPatientOrDefault(patientUuid)).doReturn(Observable.never())
-    whenever(appointmentRepository.lastCreatedAppointmentForPatient(patientUuid)).doReturn(Observable.never())
     whenever(patientRepository.bpPassportForPatient(patientUuid)).doReturn(Observable.never())
 
     Analytics.addReporter(reporter)
@@ -280,15 +277,13 @@ class PatientSummaryScreenControllerTest {
       cancelReason: AppointmentCancelReason
   ) {
     val canceledAppointment = PatientMocker.appointment(status = Cancelled, cancelReason = cancelReason)
-    whenever(appointmentRepository.lastCreatedAppointmentForPatient(patientUuid))
-        .doReturn(Observable.just<Optional<Appointment>>(Just(canceledAppointment)))
 
     val phoneNumber = PatientMocker.phoneNumber(
         patientUuid = patientUuid,
         updatedAt = canceledAppointment.updatedAt - Duration.ofHours(2))
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(Just(phoneNumber)))
 
-    setupControllerWithScreenCreated(openIntention)
+    setupControllerWithScreenCreated(openIntention, lastCreatedAppointment = canceledAppointment)
 
     if (cancelReason == InvalidPhoneNumber) {
       verify(ui).showUpdatePhoneDialog(patientUuid)
@@ -304,15 +299,12 @@ class PatientSummaryScreenControllerTest {
       cancelReason: AppointmentCancelReason
   ) {
     val canceledAppointment = PatientMocker.appointment(status = Cancelled, cancelReason = cancelReason)
-    whenever(appointmentRepository.lastCreatedAppointmentForPatient(patientUuid))
-        .doReturn(Observable.just<Optional<Appointment>>(Just(canceledAppointment)))
-
     val phoneNumber = PatientMocker.phoneNumber(
         patientUuid = patientUuid,
         updatedAt = canceledAppointment.updatedAt + Duration.ofHours(2))
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(Just(phoneNumber)))
 
-    setupControllerWithScreenCreated(openIntention)
+    setupControllerWithScreenCreated(openIntention, lastCreatedAppointment = canceledAppointment)
 
     verify(ui, never()).showUpdatePhoneDialog(patientUuid)
   }
@@ -323,13 +315,7 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention,
       cancelReason: AppointmentCancelReason
   ) {
-    val appointmentStream = Observable.just(
-        None,
-        Just(PatientMocker.appointment(cancelReason = null)),
-        Just(PatientMocker.appointment(cancelReason = cancelReason)))
-    whenever(appointmentRepository.lastCreatedAppointmentForPatient(patientUuid)).doReturn(appointmentStream)
-
-    setupControllerWithScreenCreated(openIntention)
+    setupControllerWithScreenCreated(openIntention, lastCreatedAppointment = PatientMocker.appointment(cancelReason = cancelReason))
 
     verify(ui, never()).showUpdatePhoneDialog(patientUuid)
   }
@@ -345,22 +331,16 @@ class PatientSummaryScreenControllerTest {
   fun `when a canceled appointment with the patient does not exist then update phone dialog should not be shown`(
       openIntention: OpenIntention
   ) {
-    val appointmentStream = Observable.just(
-        None,
-        Just(PatientMocker.appointment(status = Scheduled, cancelReason = null)))
-    whenever(appointmentRepository.lastCreatedAppointmentForPatient(patientUuid)).doReturn(appointmentStream)
-
-    setupControllerWithScreenCreated(openIntention)
+    setupControllerWithScreenCreated(openIntention, lastCreatedAppointment = PatientMocker.appointment(status = Scheduled, cancelReason = null))
 
     verify(ui, never()).showUpdatePhoneDialog(patientUuid)
   }
 
   @Test
   fun `when a new patient is missing a phone number, then avoid showing update phone dialog`() {
-    whenever(appointmentRepository.lastCreatedAppointmentForPatient(patientUuid)).doReturn(Observable.just<Optional<Appointment>>(None))
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
 
-    setupControllerWithScreenCreated(OpenIntention.ViewNewPatient)
+    setupControllerWithScreenCreated(OpenIntention.ViewNewPatient, lastCreatedAppointment = null)
 
     verify(ui, never()).showUpdatePhoneDialog(patientUuid)
   }
@@ -673,12 +653,14 @@ class PatientSummaryScreenControllerTest {
       screenCreatedTimestamp: Instant = Instant.now(utcClock),
       numberOfBpsToDisplay: Int = this.bpDisplayLimit,
       hasShownMissingPhoneReminder: Boolean = true,
-      markReminderAsShownCompletable: Function1<UUID, Completable> = Function1 { Completable.complete() }
+      markReminderAsShownCompletable: Function1<UUID, Completable> = Function1 { Completable.complete() },
+      lastCreatedAppointment: Appointment? = null
   ) {
     setupControllerWithoutScreenCreated(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
         hasShownMissingPhoneReminder = hasShownMissingPhoneReminder,
-        markReminderAsShownCompletable = markReminderAsShownCompletable
+        markReminderAsShownCompletable = markReminderAsShownCompletable,
+        lastCreatedAppointment = lastCreatedAppointment
     )
     uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
@@ -686,29 +668,32 @@ class PatientSummaryScreenControllerTest {
   private fun setupControllerWithoutScreenCreated(
       numberOfBpsToDisplay: Int = this.bpDisplayLimit,
       hasShownMissingPhoneReminder: Boolean = true,
-      markReminderAsShownCompletable: Function1<UUID, Completable> = Function1 { Completable.complete() }
+      markReminderAsShownCompletable: Function1<UUID, Completable> = Function1 { Completable.complete() },
+      lastCreatedAppointment: Appointment? = null
   ) {
     createController(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
         hasShownMissingPhoneReminder = hasShownMissingPhoneReminder,
-        markReminderAsShownCompletable = markReminderAsShownCompletable
+        markReminderAsShownCompletable = markReminderAsShownCompletable,
+        lastCreatedAppointment = lastCreatedAppointment
     )
   }
 
   private fun createController(
       numberOfBpsToDisplay: Int,
       hasShownMissingPhoneReminder: Boolean,
-      markReminderAsShownCompletable: Function1<UUID, Completable>
+      markReminderAsShownCompletable: Function1<UUID, Completable>,
+      lastCreatedAppointment: Appointment?
   ) {
     val controller = PatientSummaryScreenController(
         patientRepository = patientRepository,
         bpRepository = bpRepository,
         prescriptionRepository = prescriptionRepository,
         medicalHistoryRepository = medicalHistoryRepository,
-        appointmentRepository = appointmentRepository,
         numberOfBpsToDisplaySupplier = Function0 { numberOfBpsToDisplay },
         hasShownMissingPhoneReminderProvider = Function1 { Observable.just(hasShownMissingPhoneReminder) },
-        markReminderAsShownConsumer = markReminderAsShownCompletable
+        markReminderAsShownConsumer = markReminderAsShownCompletable,
+        lastCreatedAppointmentProvider = Function1 { if (lastCreatedAppointment == null) Observable.never() else Observable.just(lastCreatedAppointment) }
     )
 
     controllerSubscription = uiEvents
