@@ -21,6 +21,7 @@ import org.junit.runner.RunWith
 import org.simple.clinic.analytics.Analytics
 import org.simple.clinic.analytics.MockAnalyticsReporter
 import org.simple.clinic.bp.BloodPressureRepository
+import org.simple.clinic.drugs.PrescribedDrug
 import org.simple.clinic.drugs.PrescriptionRepository
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
@@ -36,7 +37,6 @@ import org.simple.clinic.medicalhistory.MedicalHistoryQuestion.HAS_HAD_A_HEART_A
 import org.simple.clinic.medicalhistory.MedicalHistoryQuestion.HAS_HAD_A_KIDNEY_DISEASE
 import org.simple.clinic.medicalhistory.MedicalHistoryQuestion.HAS_HAD_A_STROKE
 import org.simple.clinic.medicalhistory.MedicalHistoryQuestion.IS_ON_TREATMENT_FOR_HYPERTENSION
-import org.simple.clinic.medicalhistory.MedicalHistoryRepository
 import org.simple.clinic.overdue.Appointment
 import org.simple.clinic.overdue.Appointment.Status.Cancelled
 import org.simple.clinic.overdue.Appointment.Status.Scheduled
@@ -73,7 +73,6 @@ class PatientSummaryScreenControllerTest {
   private val ui = mock<PatientSummaryScreenUi>()
   private val patientRepository = mock<PatientRepository>()
   private val bpRepository = mock<BloodPressureRepository>()
-  private val prescriptionRepository = mock<PrescriptionRepository>()
   private val patientUuid = UUID.fromString("d2fe1916-b76a-4bb6-b7e5-e107f00c3163")
   private val utcClock = TestUtcClock()
 
@@ -92,7 +91,6 @@ class PatientSummaryScreenControllerTest {
     whenever(patientRepository.patient(patientUuid)).doReturn(Observable.never())
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.never())
     whenever(bpRepository.newestMeasurementsForPatient(patientUuid, bpDisplayLimit)).doReturn(Observable.never())
-    whenever(prescriptionRepository.newestPrescriptionsForPatient(patientUuid)).doReturn(Observable.never())
     whenever(patientRepository.bpPassportForPatient(patientUuid)).doReturn(Observable.never())
 
     Analytics.addReporter(reporter)
@@ -143,10 +141,9 @@ class PatientSummaryScreenControllerTest {
         PatientMocker.prescription(name = "Amlodipine", dosage = "10mg"),
         PatientMocker.prescription(name = "Telmisartan", dosage = "9000mg"),
         PatientMocker.prescription(name = "Randomzole", dosage = "2 packets"))
-    whenever(prescriptionRepository.newestPrescriptionsForPatient(patientUuid)).doReturn(Observable.just(prescriptions))
     whenever(bpRepository.newestMeasurementsForPatient(patientUuid, bpDisplayLimit)).doReturn(Observable.just(emptyList()))
 
-    setupControllerWithScreenCreated(intention)
+    setupControllerWithScreenCreated(intention, prescription = prescriptions)
 
     verify(ui).populateList(prescriptions, emptyList(), medicalHistory)
   }
@@ -160,7 +157,6 @@ class PatientSummaryScreenControllerTest {
         PatientMocker.bp(patientUuid, systolic = 144, diastolic = 90, recordedAt = Instant.now(utcClock).minusSeconds(45L)))
 
     whenever(bpRepository.newestMeasurementsForPatient(patientUuid, bpDisplayLimit)).doReturn(Observable.just(bloodPressureMeasurements))
-    whenever(prescriptionRepository.newestPrescriptionsForPatient(patientUuid)).doReturn(Observable.just(emptyList()))
 
     setupControllerWithScreenCreated(intention)
 
@@ -170,7 +166,6 @@ class PatientSummaryScreenControllerTest {
   @Test
   @Parameters(method = "patient summary open intentions")
   fun `patient's medical history should be populated`(openIntention: OpenIntention) {
-    whenever(prescriptionRepository.newestPrescriptionsForPatient(patientUuid)).doReturn(Observable.just(emptyList()))
     whenever(bpRepository.newestMeasurementsForPatient(patientUuid, bpDisplayLimit)).doReturn(Observable.just(emptyList()))
     val medicalHistory = PatientMocker.medicalHistory(updatedAt = Instant.now(utcClock))
 
@@ -657,7 +652,8 @@ class PatientSummaryScreenControllerTest {
       markReminderAsShownCompletable: Function1<UUID, Completable> = Function1 { Completable.complete() },
       lastCreatedAppointment: Appointment? = null,
       updateMedicalHistory: Function2<MedicalHistory, Instant, Completable> = Function2 { _, _ -> Completable.complete() },
-      medicalHistory: MedicalHistory = this.medicalHistory
+      medicalHistory: MedicalHistory = this.medicalHistory,
+      prescription: List<PrescribedDrug> = emptyList()
   ) {
     setupControllerWithoutScreenCreated(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
@@ -665,7 +661,8 @@ class PatientSummaryScreenControllerTest {
         markReminderAsShownCompletable = markReminderAsShownCompletable,
         lastCreatedAppointment = lastCreatedAppointment,
         updateMedicalHistory = updateMedicalHistory,
-        medicalHistory = medicalHistory
+        medicalHistory = medicalHistory,
+        prescription = prescription
     )
     uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
@@ -676,7 +673,8 @@ class PatientSummaryScreenControllerTest {
       markReminderAsShownCompletable: Function1<UUID, Completable> = Function1 { Completable.complete() },
       lastCreatedAppointment: Appointment? = null,
       updateMedicalHistory: Function2<MedicalHistory, Instant, Completable> = Function2 { _, _ -> Completable.complete() },
-      medicalHistory: MedicalHistory = this.medicalHistory
+      medicalHistory: MedicalHistory = this.medicalHistory,
+      prescription: List<PrescribedDrug> = emptyList()
   ) {
     createController(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
@@ -684,7 +682,8 @@ class PatientSummaryScreenControllerTest {
         markReminderAsShownCompletable = markReminderAsShownCompletable,
         lastCreatedAppointment = lastCreatedAppointment,
         updateMedicalHistory = updateMedicalHistory,
-        medicalHistory = medicalHistory
+        medicalHistory = medicalHistory,
+        prescription = prescription
     )
   }
 
@@ -694,19 +693,20 @@ class PatientSummaryScreenControllerTest {
       markReminderAsShownCompletable: Function1<UUID, Completable>,
       lastCreatedAppointment: Appointment?,
       updateMedicalHistory: Function2<MedicalHistory, Instant, Completable>,
-      medicalHistory: MedicalHistory
+      medicalHistory: MedicalHistory,
+      prescription: List<PrescribedDrug>
   ) {
     val controller = PatientSummaryScreenController(
         patientRepository = patientRepository,
         bpRepository = bpRepository,
-        prescriptionRepository = prescriptionRepository,
         numberOfBpsToDisplaySupplier = Function0 { numberOfBpsToDisplay },
         hasShownMissingPhoneReminderProvider = Function1 { Observable.just(hasShownMissingPhoneReminder) },
         markReminderAsShownConsumer = markReminderAsShownCompletable,
         lastCreatedAppointmentProvider = Function1 { if (lastCreatedAppointment == null) Observable.never() else Observable.just(lastCreatedAppointment) },
         updateMedicalHistory = updateMedicalHistory,
         utcTimestampProvider = Function0 { Instant.now(utcClock) },
-        medicalHistoryProvider = Function1 { Observable.just(medicalHistory) }
+        medicalHistoryProvider = Function1 { Observable.just(medicalHistory) },
+        patientPrescriptionProvider = Function1 { Observable.just(prescription) }
     )
 
     controllerSubscription = uiEvents

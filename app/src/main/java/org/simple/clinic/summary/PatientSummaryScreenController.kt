@@ -13,7 +13,7 @@ import org.simple.clinic.ReplayUntilScreenIsDestroyed
 import org.simple.clinic.ReportAnalyticsEvents
 import org.simple.clinic.analytics.Analytics
 import org.simple.clinic.bp.BloodPressureRepository
-import org.simple.clinic.drugs.PrescriptionRepository
+import org.simple.clinic.drugs.PrescribedDrug
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
@@ -48,14 +48,14 @@ typealias UiChange = (Ui) -> Unit
 class PatientSummaryScreenController @Inject constructor(
     private val patientRepository: PatientRepository,
     private val bpRepository: BloodPressureRepository,
-    private val prescriptionRepository: PrescriptionRepository,
     private val numberOfBpsToDisplaySupplier: Function0<Int>,
     private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
     private val markReminderAsShownConsumer: Function1<UUID, Completable>,
     private val lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>,
     private val updateMedicalHistory: Function2<MedicalHistory, Instant, Completable>,
     private val utcTimestampProvider: Function0<Instant>,
-    private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>
+    private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
+    private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -133,7 +133,7 @@ class PatientSummaryScreenController @Inject constructor(
           .map { it.patientUuid }
           .distinctUntilChanged()
 
-      val prescribedDrugsStream = patientUuids.flatMap { prescriptionRepository.newestPrescriptionsForPatient(it) }
+      val prescribedDrugsStream = patientUuids.flatMap(patientPrescriptionProvider::call)
 
       val bloodPressures = patientUuids.flatMap { patientUuid -> bpRepository.newestMeasurementsForPatient(patientUuid, numberOfBpsToDisplaySupplier.call()) }
 

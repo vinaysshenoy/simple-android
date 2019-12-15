@@ -4,6 +4,8 @@ import dagger.Module
 import dagger.Provides
 import io.reactivex.Completable
 import io.reactivex.Observable
+import org.simple.clinic.drugs.PrescribedDrug
+import org.simple.clinic.drugs.PrescriptionRepository
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
@@ -53,5 +55,10 @@ class PatientSummaryScreenControllerDependencies {
   @Provides
   fun bindMedicalHistoryProvider(repository: MedicalHistoryRepository): Function1<UUID, Observable<MedicalHistory>> {
     return Function1 { repository.historyForPatientOrDefault(it) }
+  }
+
+  @Provides
+  fun bindPatientPrescriptionProvider(repository: PrescriptionRepository): Function1<UUID, Observable<List<PrescribedDrug>>> {
+    return Function1 { repository.newestPrescriptionsForPatient(it) }
   }
 }
