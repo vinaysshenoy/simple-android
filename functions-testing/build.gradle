@@ -1,4 +1,8 @@
 apply plugin: 'java-library'
 
+dependencies {
+  api project(':functions')
+}
+
 sourceCompatibility = "8"
 targetCompatibility = "8"

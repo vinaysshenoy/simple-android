@@ -25,6 +25,7 @@ import org.simple.clinic.bp.BloodPressureRepository
 import org.simple.clinic.drugs.PrescriptionRepository
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
+import org.simple.clinic.functions.MockFunctions
 import org.simple.clinic.medicalhistory.Answer
 import org.simple.clinic.medicalhistory.Answer.Unanswered
 import org.simple.clinic.medicalhistory.MedicalHistory
@@ -371,8 +372,7 @@ class PatientSummaryScreenControllerTest {
   ) {
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
 
-    val markReminderAsShownCompletable = mock<Function1<UUID, Completable>>()
-    whenever(markReminderAsShownCompletable.call(patientUuid)).doReturn(Completable.complete())
+    val markReminderAsShownCompletable = MockFunctions.function1<UUID, Completable>(Completable.complete())
 
     setupControllerWithScreenCreated(
         openIntention,
@@ -382,7 +382,7 @@ class PatientSummaryScreenControllerTest {
     uiEvents.onNext(PatientSummaryBloodPressureSaved)
 
     verify(ui).showAddPhoneDialog(patientUuid)
-    verify(markReminderAsShownCompletable).call(patientUuid)
+    markReminderAsShownCompletable.invocations.assertCalledWithParameters(patientUuid)
   }
 
   @Test
@@ -392,10 +392,11 @@ class PatientSummaryScreenControllerTest {
   ) {
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
 
-    setupControllerWithScreenCreated(openIntention)
+    val markReminderAsShownCompletable = MockFunctions.function1<UUID, Completable>(Completable.complete())
+    setupControllerWithScreenCreated(openIntention, markReminderAsShownCompletable = markReminderAsShownCompletable)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
-    //    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
+    markReminderAsShownCompletable.invocations.assertNeverCalled()
   }
 
   @Test
@@ -405,10 +406,11 @@ class PatientSummaryScreenControllerTest {
   ) {
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
 
-    setupControllerWithScreenCreated(openIntention)
+    val markReminderAsShownCompletable = MockFunctions.function1<UUID, Completable>(Completable.complete())
+    setupControllerWithScreenCreated(openIntention, markReminderAsShownCompletable = markReminderAsShownCompletable)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
-    //    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
+    markReminderAsShownCompletable.invocations.assertNeverCalled()
   }
 
   @Test
@@ -417,10 +419,11 @@ class PatientSummaryScreenControllerTest {
     val phoneNumber = Just(PatientMocker.phoneNumber(number = "101"))
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(phoneNumber))
 
-    setupControllerWithScreenCreated(openIntention)
+    val markReminderAsShownCompletable = MockFunctions.function1<UUID, Completable>(Completable.complete())
+    setupControllerWithScreenCreated(openIntention, markReminderAsShownCompletable = markReminderAsShownCompletable)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
-    //    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
+    markReminderAsShownCompletable.invocations.assertNeverCalled()
   }
 
   @Test
@@ -429,10 +432,11 @@ class PatientSummaryScreenControllerTest {
     val phoneNumber = Just(PatientMocker.phoneNumber(number = "101"))
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(phoneNumber))
 
-    setupControllerWithScreenCreated(openIntention)
+    val markReminderAsShownCompletable = MockFunctions.function1<UUID, Completable>(Completable.complete())
+    setupControllerWithScreenCreated(openIntention, markReminderAsShownCompletable = markReminderAsShownCompletable)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
-    //    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
+    markReminderAsShownCompletable.invocations.assertNeverCalled()
   }
 
   @Test
@@ -440,10 +444,11 @@ class PatientSummaryScreenControllerTest {
   fun `when a new patient is missing a phone number, then add phone dialog should not be shown`(openIntention: OpenIntention) {
     whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
 
-    setupControllerWithScreenCreated(openIntention)
+    val markReminderAsShownCompletable = MockFunctions.function1<UUID, Completable>(Completable.complete())
+    setupControllerWithScreenCreated(openIntention, markReminderAsShownCompletable = markReminderAsShownCompletable)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
-    //    verify(missingPhoneReminderRepository, never()).markReminderAsShownFor(any())
+    markReminderAsShownCompletable.invocations.assertNeverCalled()
   }
 
   private fun randomPatientSummaryOpenIntention() = `patient summary open intentions`().shuffled().first()
