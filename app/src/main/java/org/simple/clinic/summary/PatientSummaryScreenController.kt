@@ -49,7 +49,6 @@ typealias Ui = PatientSummaryScreenUi
 typealias UiChange = (Ui) -> Unit
 
 class PatientSummaryScreenController @Inject constructor(
-    private val numberOfBpsToDisplaySupplier: Function0<Int>,
     private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
     private val markReminderAsShownConsumer: Function1<UUID, Completable>,
     private val lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>,
@@ -58,13 +57,46 @@ class PatientSummaryScreenController @Inject constructor(
     private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
     private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
     private val bloodPressureCountProvider: Function1<UUID, Int>,
-    private val bloodPressuresProvider: Function2<UUID, Int, Observable<List<BloodPressureMeasurement>>>,
+    private val bloodPressuresProvider: Function1<UUID, Observable<List<BloodPressureMeasurement>>>,
     private val patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>,
     private val patientPhoneNumberProvider: Function1<UUID, Observable<Optional<PatientPhoneNumber>>>,
     private val patientBpPassportProvider: Function1<UUID, Observable<Optional<BusinessId>>>,
     private val patientAddressProvider: Function1<UUID, Observable<PatientAddress>>,
     private val patientProvider: Function1<UUID, Observable<Patient>>
 ) : ObservableTransformer<UiEvent, UiChange> {
+
+  constructor(
+      numberOfBpsToDisplaySupplier: Function0<Int>,
+      hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
+      markReminderAsShownConsumer: Function1<UUID, Completable>,
+      lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>,
+      updateMedicalHistory: Function2<MedicalHistory, Instant, Completable>,
+      utcTimestampProvider: Function0<Instant>,
+      medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
+      patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
+      bloodPressureCountProvider: Function1<UUID, Int>,
+      bloodPressuresProvider: Function2<UUID, Int, Observable<List<BloodPressureMeasurement>>>,
+      patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>,
+      patientPhoneNumberProvider: Function1<UUID, Observable<Optional<PatientPhoneNumber>>>,
+      patientBpPassportProvider: Function1<UUID, Observable<Optional<BusinessId>>>,
+      patientAddressProvider: Function1<UUID, Observable<PatientAddress>>,
+      patientProvider: Function1<UUID, Observable<Patient>>
+  ) : this(
+      hasShownMissingPhoneReminderProvider = hasShownMissingPhoneReminderProvider,
+      markReminderAsShownConsumer = markReminderAsShownConsumer,
+      lastCreatedAppointmentProvider = lastCreatedAppointmentProvider,
+      updateMedicalHistory = updateMedicalHistory,
+      utcTimestampProvider = utcTimestampProvider,
+      medicalHistoryProvider = medicalHistoryProvider,
+      patientPrescriptionProvider = patientPrescriptionProvider,
+      bloodPressureCountProvider = bloodPressureCountProvider,
+      bloodPressuresProvider = Function1 { patientUuid -> bloodPressuresProvider.call(patientUuid, numberOfBpsToDisplaySupplier.call()) },
+      patientDataChangedSinceProvider = patientDataChangedSinceProvider,
+      patientPhoneNumberProvider = patientPhoneNumberProvider,
+      patientBpPassportProvider = patientBpPassportProvider,
+      patientAddressProvider = patientAddressProvider,
+      patientProvider = patientProvider
+  )
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
     val replayedEvents = ReplayUntilScreenIsDestroyed(events)
@@ -136,9 +168,7 @@ class PatientSummaryScreenController @Inject constructor(
           .distinctUntilChanged()
 
       val prescribedDrugsStream = patientUuids.flatMap(patientPrescriptionProvider::call)
-
-      val bloodPressures = patientUuids.flatMap { patientUuid -> bloodPressuresProvider.call(patientUuid, numberOfBpsToDisplaySupplier.call()) }
-
+      val bloodPressures = patientUuids.flatMap(bloodPressuresProvider::call)
       val medicalHistoryItems = patientUuids.flatMap(medicalHistoryProvider::call)
 
       // combineLatest() is important here so that the first data-set for the list

@@ -31,11 +31,6 @@ import java.util.UUID
 class PatientSummaryScreenControllerDependencies {
 
   @Provides
-  fun bindNumberOfBpsToDisplaySupplier(patientSummaryConfig: PatientSummaryConfig): Function0<Int> {
-    return Function0 { patientSummaryConfig.numberOfBpsToDisplay }
-  }
-
-  @Provides
   fun bindHasShownMissingPhoneReminderProvider(repository: MissingPhoneReminderRepository): Function1<UUID, Observable<Boolean>> {
     return Function1 { repository.hasShownReminderFor(it).toObservable() }
   }
@@ -76,8 +71,11 @@ class PatientSummaryScreenControllerDependencies {
   }
 
   @Provides
-  fun bindBloodPressuresProvider(repository: BloodPressureRepository): Function2<UUID, Int, Observable<List<BloodPressureMeasurement>>> {
-    return Function2 { patientUuid, numberOfBps -> repository.newestMeasurementsForPatient(patientUuid, numberOfBps) }
+  fun bindBloodPressuresProvider(
+      repository: BloodPressureRepository,
+      patientSummaryConfig: PatientSummaryConfig
+  ): Function1<UUID, Observable<List<BloodPressureMeasurement>>> {
+    return Function1 { patientUuid -> repository.newestMeasurementsForPatient(patientUuid, patientSummaryConfig.numberOfBpsToDisplay) }
   }
 
   @Provides
