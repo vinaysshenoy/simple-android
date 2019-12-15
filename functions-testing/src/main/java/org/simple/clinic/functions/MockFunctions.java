@@ -2,6 +2,7 @@ package org.simple.clinic.functions;
 
 import org.simple.clinic.functions.mocks.MockFunction0;
 import org.simple.clinic.functions.mocks.MockFunction1;
+import org.simple.clinic.functions.mocks.MockFunction2;
 
 public class MockFunctions {
 
@@ -16,10 +17,18 @@ public class MockFunctions {
   }
 
   public static <P1, R> MockFunction1<P1, R> function1(R value) {
-    return new MockFunction1<>((ignored) -> value);
+    return new MockFunction1<>((p1) -> value);
   }
 
   public static <P1, R> MockFunction1<P1, R> function1(Function1<P1, R> function1) {
     return new MockFunction1<>(function1);
+  }
+
+  public static <P1, P2, R> MockFunction2<P1, P2, R> function2(R value) {
+    return new MockFunction2<>(((p1, p2) -> value));
+  }
+
+  public static <P1, P2, R> MockFunction2<P1, P2, R> function2(Function2<P1, P2, R> function2) {
+    return new MockFunction2<>(function2);
   }
 }
