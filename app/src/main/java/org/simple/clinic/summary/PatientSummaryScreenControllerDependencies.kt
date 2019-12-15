@@ -49,4 +49,9 @@ class PatientSummaryScreenControllerDependencies {
   fun bindUtcTimestampProvider(clock: UtcClock): Function0<Instant> {
     return Function0 { Instant.now(clock) }
   }
+
+  @Provides
+  fun bindMedicalHistoryProvider(repository: MedicalHistoryRepository): Function1<UUID, Observable<MedicalHistory>> {
+    return Function1 { repository.historyForPatientOrDefault(it) }
+  }
 }

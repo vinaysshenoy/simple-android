@@ -26,7 +26,6 @@ import org.simple.clinic.medicalhistory.MedicalHistoryQuestion.HAS_HAD_A_HEART_A
 import org.simple.clinic.medicalhistory.MedicalHistoryQuestion.HAS_HAD_A_KIDNEY_DISEASE
 import org.simple.clinic.medicalhistory.MedicalHistoryQuestion.HAS_HAD_A_STROKE
 import org.simple.clinic.medicalhistory.MedicalHistoryQuestion.IS_ON_TREATMENT_FOR_HYPERTENSION
-import org.simple.clinic.medicalhistory.MedicalHistoryRepository
 import org.simple.clinic.overdue.Appointment
 import org.simple.clinic.overdue.Appointment.Status.Cancelled
 import org.simple.clinic.overdue.AppointmentCancelReason.InvalidPhoneNumber
@@ -50,13 +49,13 @@ class PatientSummaryScreenController @Inject constructor(
     private val patientRepository: PatientRepository,
     private val bpRepository: BloodPressureRepository,
     private val prescriptionRepository: PrescriptionRepository,
-    private val medicalHistoryRepository: MedicalHistoryRepository,
     private val numberOfBpsToDisplaySupplier: Function0<Int>,
     private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
     private val markReminderAsShownConsumer: Function1<UUID, Completable>,
     private val lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>,
     private val updateMedicalHistory: Function2<MedicalHistory, Instant, Completable>,
-    private val utcTimestampProvider: Function0<Instant>
+    private val utcTimestampProvider: Function0<Instant>,
+    private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -138,7 +137,7 @@ class PatientSummaryScreenController @Inject constructor(
 
       val bloodPressures = patientUuids.flatMap { patientUuid -> bpRepository.newestMeasurementsForPatient(patientUuid, numberOfBpsToDisplaySupplier.call()) }
 
-      val medicalHistoryItems = patientUuids.flatMap { medicalHistoryRepository.historyForPatientOrDefault(it) }
+      val medicalHistoryItems = patientUuids.flatMap(medicalHistoryProvider::call)
 
       // combineLatest() is important here so that the first data-set for the list
       // is dispatched in one go instead of them appearing one after another on the UI.
@@ -171,7 +170,7 @@ class PatientSummaryScreenController @Inject constructor(
         .map { it.patientUuid }
 
     val medicalHistories = patientUuids
-        .flatMap { medicalHistoryRepository.historyForPatientOrDefault(it) }
+        .flatMap(medicalHistoryProvider::call)
 
     val updateHistory = { medicalHistory: MedicalHistory, question: MedicalHistoryQuestion, answer: Answer ->
       when (question) {

@@ -410,6 +410,8 @@ object PatientMocker {
   }
 
   fun medicalHistory(
+      uuid: UUID = UUID.randomUUID(),
+      patientUuid: UUID = UUID.randomUUID(),
       hasHadHeartAttack: Answer = Yes,
       hasHadStroke: Answer = No,
       hasHadKidneyDisease: Answer = Yes,
@@ -422,8 +424,8 @@ object PatientMocker {
       deletedAt: Instant? = null
   ): MedicalHistory {
     return MedicalHistory(
-        uuid = UUID.randomUUID(),
-        patientUuid = UUID.randomUUID(),
+        uuid = uuid,
+        patientUuid = patientUuid,
         diagnosedWithHypertension = diagnosedWithHypertension,
         isOnTreatmentForHypertension = isOnTreatmentForHypertension,
         hasHadHeartAttack = hasHadHeartAttack,
