@@ -15,6 +15,7 @@ import org.simple.clinic.medicalhistory.MedicalHistory
 import org.simple.clinic.medicalhistory.MedicalHistoryRepository
 import org.simple.clinic.overdue.Appointment
 import org.simple.clinic.overdue.AppointmentRepository
+import org.simple.clinic.patient.PatientAddress
 import org.simple.clinic.patient.PatientPhoneNumber
 import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.patient.businessid.BusinessId
@@ -91,5 +92,10 @@ class PatientSummaryScreenControllerDependencies {
   @Provides
   fun bindPatientBpPassportProvider(repository: PatientRepository): Function1<UUID, Observable<Optional<BusinessId>>> {
     return Function1 { repository.bpPassportForPatient(it) }
+  }
+
+  @Provides
+  fun bindPatientAddressProvider(repository: PatientRepository): Function1<UUID, Observable<PatientAddress>> {
+    return Function1 { repository.address(it).filterAndUnwrapJust() }
   }
 }

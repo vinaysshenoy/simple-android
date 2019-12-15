@@ -29,6 +29,7 @@ import org.simple.clinic.medicalhistory.MedicalHistoryQuestion.IS_ON_TREATMENT_F
 import org.simple.clinic.overdue.Appointment
 import org.simple.clinic.overdue.Appointment.Status.Cancelled
 import org.simple.clinic.overdue.AppointmentCancelReason.InvalidPhoneNumber
+import org.simple.clinic.patient.PatientAddress
 import org.simple.clinic.patient.PatientPhoneNumber
 import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.patient.businessid.BusinessId
@@ -62,7 +63,8 @@ class PatientSummaryScreenController @Inject constructor(
     private val bloodPressuresProvider: Function2<UUID, Int, Observable<List<BloodPressureMeasurement>>>,
     private val patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>,
     private val patientPhoneNumberProvider: Function1<UUID, Observable<Optional<PatientPhoneNumber>>>,
-    private val patientBpPassportProvider: Function1<UUID, Observable<Optional<BusinessId>>>
+    private val patientBpPassportProvider: Function1<UUID, Observable<Optional<BusinessId>>>,
+    private val patientAddressProvider: Function1<UUID, Observable<PatientAddress>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -112,8 +114,8 @@ class PatientSummaryScreenController @Inject constructor(
         .refCount()
 
     val addresses = sharedPatients
-        .flatMap { patient -> patientRepository.address(patient.addressUuid) }
-        .map { (it as Just).value }
+        .map { it.addressUuid }
+        .flatMap(patientAddressProvider::call)
 
     val phoneNumbers = patientUuid.flatMap(patientPhoneNumberProvider::call)
 

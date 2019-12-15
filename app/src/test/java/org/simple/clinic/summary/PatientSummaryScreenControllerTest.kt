@@ -90,6 +90,7 @@ class PatientSummaryScreenControllerTest {
       patientUuid = patientUuid,
       identifier = Identifier(value = "8c3fdfc8-370c-4756-a215-9d453b846f77", type = BpPassport)
   )
+  private val patientAddress = PatientMocker.address(uuid = UUID.fromString("85e53122-5947-49f4-9d97-23f4d3ba027b"))
 
   private lateinit var controllerSubscription: Disposable
 
@@ -116,12 +117,12 @@ class PatientSummaryScreenControllerTest {
     val phoneNumber = None
 
     whenever(patientRepository.patient(patientUuid)).doReturn(Observable.just<Optional<Patient>>(Just(patient)))
-    whenever(patientRepository.address(addressUuid)).doReturn(Observable.just<Optional<PatientAddress>>(Just(address)))
 
     setupControllerWithScreenCreated(
         openIntention = intention,
         patientPhoneNumber = null,
-        patientBpPassport = bpPassport
+        patientBpPassport = bpPassport,
+        patientAddress = address
     )
 
     verify(ui).populatePatientProfile(PatientSummaryProfile(patient, address, phoneNumber, bpPassport.toOptional()))
@@ -639,7 +640,8 @@ class PatientSummaryScreenControllerTest {
       bps: List<BloodPressureMeasurement> = emptyList(),
       hasPatientDataChanged: Boolean = false,
       patientPhoneNumber: PatientPhoneNumber? = this.phoneNumber,
-      patientBpPassport: BusinessId? = this.bpPassport
+      patientBpPassport: BusinessId? = this.bpPassport,
+      patientAddress: PatientAddress = this.patientAddress
   ) {
     setupControllerWithoutScreenCreated(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
@@ -653,7 +655,8 @@ class PatientSummaryScreenControllerTest {
         bps = bps,
         hasPatientDataChanged = hasPatientDataChanged,
         patientPhoneNumber = patientPhoneNumber,
-        patientBpPassport = patientBpPassport
+        patientBpPassport = patientBpPassport,
+        patientAddress = patientAddress
     )
     uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
@@ -670,7 +673,8 @@ class PatientSummaryScreenControllerTest {
       bps: List<BloodPressureMeasurement> = emptyList(),
       hasPatientDataChanged: Boolean = false,
       patientPhoneNumber: PatientPhoneNumber? = this.phoneNumber,
-      patientBpPassport: BusinessId? = this.bpPassport
+      patientBpPassport: BusinessId? = this.bpPassport,
+      patientAddress: PatientAddress = this.patientAddress
   ) {
     createController(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
@@ -684,7 +688,8 @@ class PatientSummaryScreenControllerTest {
         bps = bps,
         hasPatientDataChanged = hasPatientDataChanged,
         patientPhoneNumber = patientPhoneNumber,
-        patientBpPassport = patientBpPassport
+        patientBpPassport = patientBpPassport,
+        patientAddress = patientAddress
     )
   }
 
@@ -700,7 +705,8 @@ class PatientSummaryScreenControllerTest {
       bps: List<BloodPressureMeasurement>,
       hasPatientDataChanged: Boolean,
       patientPhoneNumber: PatientPhoneNumber?,
-      patientBpPassport: BusinessId?
+      patientBpPassport: BusinessId?,
+      patientAddress: PatientAddress
   ) {
     val controller = PatientSummaryScreenController(
         patientRepository = patientRepository,
@@ -716,7 +722,8 @@ class PatientSummaryScreenControllerTest {
         bloodPressuresProvider = Function2 { _, _ -> Observable.just(bps) },
         patientDataChangedSinceProvider = Function2 { _, _ -> hasPatientDataChanged },
         patientPhoneNumberProvider = Function1 { Observable.just(patientPhoneNumber.toOptional()) },
-        patientBpPassportProvider = Function1 { Observable.just(patientBpPassport.toOptional()) }
+        patientBpPassportProvider = Function1 { Observable.just(patientBpPassport.toOptional()) },
+        patientAddressProvider = Function1 { Observable.just(patientAddress) }
     )
 
     controllerSubscription = uiEvents
