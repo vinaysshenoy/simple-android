@@ -15,8 +15,10 @@ import org.simple.clinic.medicalhistory.MedicalHistory
 import org.simple.clinic.medicalhistory.MedicalHistoryRepository
 import org.simple.clinic.overdue.Appointment
 import org.simple.clinic.overdue.AppointmentRepository
+import org.simple.clinic.patient.PatientPhoneNumber
 import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.summary.addphone.MissingPhoneReminderRepository
+import org.simple.clinic.util.Optional
 import org.simple.clinic.util.UtcClock
 import org.simple.clinic.util.filterAndUnwrapJust
 import org.threeten.bp.Instant
@@ -78,5 +80,10 @@ class PatientSummaryScreenControllerDependencies {
   @Provides
   fun bindPatientDataChangedSinceProvider(repository: PatientRepository): Function2<UUID, Instant, Boolean> {
     return Function2 { patientUuid, instant -> repository.hasPatientDataChangedSince(patientUuid, instant) }
+  }
+
+  @Provides
+  fun bindPatientPhoneNumberProvider(repository: PatientRepository): Function1<UUID, Observable<Optional<PatientPhoneNumber>>> {
+    return Function1 { repository.phoneNumber(it) }
   }
 }

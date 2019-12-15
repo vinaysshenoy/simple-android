@@ -29,12 +29,14 @@ import org.simple.clinic.medicalhistory.MedicalHistoryQuestion.IS_ON_TREATMENT_F
 import org.simple.clinic.overdue.Appointment
 import org.simple.clinic.overdue.Appointment.Status.Cancelled
 import org.simple.clinic.overdue.AppointmentCancelReason.InvalidPhoneNumber
+import org.simple.clinic.patient.PatientPhoneNumber
 import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.summary.OpenIntention.LinkIdWithPatient
 import org.simple.clinic.summary.OpenIntention.ViewExistingPatient
 import org.simple.clinic.summary.OpenIntention.ViewNewPatient
 import org.simple.clinic.util.Just
 import org.simple.clinic.util.None
+import org.simple.clinic.util.Optional
 import org.simple.clinic.util.exhaustive
 import org.simple.clinic.util.filterAndUnwrapJust
 import org.simple.clinic.widgets.UiEvent
@@ -57,7 +59,8 @@ class PatientSummaryScreenController @Inject constructor(
     private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
     private val bloodPressureCountProvider: Function1<UUID, Int>,
     private val bloodPressuresProvider: Function2<UUID, Int, Observable<List<BloodPressureMeasurement>>>,
-    private val patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>
+    private val patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>,
+    private val patientPhoneNumberProvider: Function1<UUID, Observable<Optional<PatientPhoneNumber>>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -110,8 +113,7 @@ class PatientSummaryScreenController @Inject constructor(
         .flatMap { patient -> patientRepository.address(patient.addressUuid) }
         .map { (it as Just).value }
 
-    val phoneNumbers = patientUuid
-        .flatMap { patientRepository.phoneNumber(it) }
+    val phoneNumbers = patientUuid.flatMap(patientPhoneNumberProvider::call)
 
     val bpPassport = patientUuid
         .flatMap { patientRepository.bpPassportForPatient(it) }
@@ -390,15 +392,14 @@ class PatientSummaryScreenController @Inject constructor(
   }
 
   private fun hasInvalidPhone(patientUuid: UUID): Observable<Boolean> {
-    return patientRepository.phoneNumber(patientUuid)
+    return patientPhoneNumberProvider.call(patientUuid)
         .filterAndUnwrapJust()
         .zipWith(lastCancelledAppointmentWithInvalidPhone(patientUuid))
         .map { (number, appointment) -> appointment.updatedAt > number.updatedAt }
   }
 
   private fun isMissingPhoneAndShouldBeReminded(patientUuid: UUID): Observable<Boolean> {
-    return patientRepository
-        .phoneNumber(patientUuid)
+    return patientPhoneNumberProvider.call(patientUuid)
         .zipWith(hasShownMissingPhoneReminderProvider.call(patientUuid))
         .map { (number, reminderShown) -> number is None && reminderShown.not() }
   }

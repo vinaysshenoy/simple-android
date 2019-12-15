@@ -81,13 +81,16 @@ class PatientSummaryScreenControllerTest {
       uuid = UUID.fromString("30a58b92-d5d9-420c-b591-7ea79cf94ee7"),
       patientUuid = patientUuid
   )
+  private val phoneNumber = PatientMocker.phoneNumber(
+      uuid = UUID.fromString("cf468b9c-4b66-478c-b15b-785b193dc7c9"),
+      patientUuid = patientUuid
+  )
 
   private lateinit var controllerSubscription: Disposable
 
   @Before
   fun setUp() {
     whenever(patientRepository.patient(patientUuid)).doReturn(Observable.never())
-    whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.never())
     whenever(patientRepository.bpPassportForPatient(patientUuid)).doReturn(Observable.never())
 
     Analytics.addReporter(reporter)
@@ -111,10 +114,9 @@ class PatientSummaryScreenControllerTest {
 
     whenever(patientRepository.patient(patientUuid)).doReturn(Observable.just<Optional<Patient>>(Just(patient)))
     whenever(patientRepository.address(addressUuid)).doReturn(Observable.just<Optional<PatientAddress>>(Just(address)))
-    whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(phoneNumber))
     whenever(patientRepository.bpPassportForPatient(patientUuid)).doReturn(Observable.just(optionalBpPassport))
 
-    setupControllerWithScreenCreated(intention)
+    setupControllerWithScreenCreated(intention, patientPhoneNumber = null)
 
     verify(ui).populatePatientProfile(PatientSummaryProfile(patient, address, phoneNumber, optionalBpPassport))
     verify(ui).showEditButton()
@@ -265,13 +267,13 @@ class PatientSummaryScreenControllerTest {
       cancelReason: AppointmentCancelReason
   ) {
     val canceledAppointment = PatientMocker.appointment(status = Cancelled, cancelReason = cancelReason)
+    val phoneNumber = this.phoneNumber.copy(updatedAt = canceledAppointment.updatedAt - Duration.ofHours(2))
 
-    val phoneNumber = PatientMocker.phoneNumber(
-        patientUuid = patientUuid,
-        updatedAt = canceledAppointment.updatedAt - Duration.ofHours(2))
-    whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(Just(phoneNumber)))
-
-    setupControllerWithScreenCreated(openIntention, lastCreatedAppointment = canceledAppointment)
+    setupControllerWithScreenCreated(
+        openIntention = openIntention,
+        lastCreatedAppointment = canceledAppointment,
+        patientPhoneNumber = phoneNumber
+    )
 
     if (cancelReason == InvalidPhoneNumber) {
       verify(ui).showUpdatePhoneDialog(patientUuid)
@@ -287,12 +289,13 @@ class PatientSummaryScreenControllerTest {
       cancelReason: AppointmentCancelReason
   ) {
     val canceledAppointment = PatientMocker.appointment(status = Cancelled, cancelReason = cancelReason)
-    val phoneNumber = PatientMocker.phoneNumber(
-        patientUuid = patientUuid,
-        updatedAt = canceledAppointment.updatedAt + Duration.ofHours(2))
-    whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(Just(phoneNumber)))
+    val phoneNumber = this.phoneNumber.copy(updatedAt = canceledAppointment.updatedAt + Duration.ofHours(2))
 
-    setupControllerWithScreenCreated(openIntention, lastCreatedAppointment = canceledAppointment)
+    setupControllerWithScreenCreated(
+        openIntention = openIntention,
+        lastCreatedAppointment = canceledAppointment,
+        patientPhoneNumber = phoneNumber
+    )
 
     verify(ui, never()).showUpdatePhoneDialog(patientUuid)
   }
@@ -326,9 +329,11 @@ class PatientSummaryScreenControllerTest {
 
   @Test
   fun `when a new patient is missing a phone number, then avoid showing update phone dialog`() {
-    whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
-
-    setupControllerWithScreenCreated(OpenIntention.ViewNewPatient, lastCreatedAppointment = null)
+    setupControllerWithScreenCreated(
+        openIntention = OpenIntention.ViewNewPatient,
+        lastCreatedAppointment = null,
+        patientPhoneNumber = null
+    )
 
     verify(ui, never()).showUpdatePhoneDialog(patientUuid)
   }
@@ -338,14 +343,13 @@ class PatientSummaryScreenControllerTest {
   fun `when an existing patient is missing a phone number, a BP is recorded, and the user has never been reminded, then add phone dialog should be shown`(
       openIntention: OpenIntention
   ) {
-    whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
-
     val markReminderAsShownCompletable = MockFunctions.function1<UUID, Completable>(Completable.complete())
 
     setupControllerWithScreenCreated(
         openIntention,
         hasShownMissingPhoneReminder = false,
-        markReminderAsShownCompletable = markReminderAsShownCompletable
+        markReminderAsShownCompletable = markReminderAsShownCompletable,
+        patientPhoneNumber = null
     )
     uiEvents.onNext(PatientSummaryBloodPressureSaved)
 
@@ -358,10 +362,8 @@ class PatientSummaryScreenControllerTest {
   fun `when an existing patient is missing a phone number, a BP hasn't been recorded yet, and the user has never been reminded, then add phone dialog should not be shown`(
       openIntention: OpenIntention
   ) {
-    whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
-
     val markReminderAsShownCompletable = MockFunctions.function1<UUID, Completable>(Completable.complete())
-    setupControllerWithScreenCreated(openIntention, markReminderAsShownCompletable = markReminderAsShownCompletable)
+    setupControllerWithScreenCreated(openIntention, markReminderAsShownCompletable = markReminderAsShownCompletable, patientPhoneNumber = null)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
     markReminderAsShownCompletable.invocations.assertNeverCalled()
@@ -372,10 +374,8 @@ class PatientSummaryScreenControllerTest {
   fun `when an existing patient is missing a phone number, and the user has been reminded before, then add phone dialog should not be shown`(
       openIntention: OpenIntention
   ) {
-    whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
-
     val markReminderAsShownCompletable = MockFunctions.function1<UUID, Completable>(Completable.complete())
-    setupControllerWithScreenCreated(openIntention, markReminderAsShownCompletable = markReminderAsShownCompletable)
+    setupControllerWithScreenCreated(openIntention, markReminderAsShownCompletable = markReminderAsShownCompletable, patientPhoneNumber = null)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
     markReminderAsShownCompletable.invocations.assertNeverCalled()
@@ -384,9 +384,6 @@ class PatientSummaryScreenControllerTest {
   @Test
   @Parameters(method = "patient summary open intentions except new patient")
   fun `when an existing patient has a phone number, then add phone dialog should not be shown`(openIntention: OpenIntention) {
-    val phoneNumber = Just(PatientMocker.phoneNumber(number = "101"))
-    whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(phoneNumber))
-
     val markReminderAsShownCompletable = MockFunctions.function1<UUID, Completable>(Completable.complete())
     setupControllerWithScreenCreated(openIntention, markReminderAsShownCompletable = markReminderAsShownCompletable)
 
@@ -397,9 +394,6 @@ class PatientSummaryScreenControllerTest {
   @Test
   @Parameters(method = "patient summary open intentions except new patient")
   fun `when a new patient has a phone number, then add phone dialog should not be shown`(openIntention: OpenIntention) {
-    val phoneNumber = Just(PatientMocker.phoneNumber(number = "101"))
-    whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(phoneNumber))
-
     val markReminderAsShownCompletable = MockFunctions.function1<UUID, Completable>(Completable.complete())
     setupControllerWithScreenCreated(openIntention, markReminderAsShownCompletable = markReminderAsShownCompletable)
 
@@ -410,10 +404,12 @@ class PatientSummaryScreenControllerTest {
   @Test
   @Parameters(method = "patient summary open intentions except new patient")
   fun `when a new patient is missing a phone number, then add phone dialog should not be shown`(openIntention: OpenIntention) {
-    whenever(patientRepository.phoneNumber(patientUuid)).doReturn(Observable.just<Optional<PatientPhoneNumber>>(None))
-
     val markReminderAsShownCompletable = MockFunctions.function1<UUID, Completable>(Completable.complete())
-    setupControllerWithScreenCreated(openIntention, markReminderAsShownCompletable = markReminderAsShownCompletable)
+    setupControllerWithScreenCreated(
+        openIntention,
+        markReminderAsShownCompletable = markReminderAsShownCompletable,
+        patientPhoneNumber = null
+    )
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
     markReminderAsShownCompletable.invocations.assertNeverCalled()
@@ -635,7 +631,8 @@ class PatientSummaryScreenControllerTest {
       prescription: List<PrescribedDrug> = emptyList(),
       bpCount: Int = 0,
       bps: List<BloodPressureMeasurement> = emptyList(),
-      hasPatientDataChanged: Boolean = false
+      hasPatientDataChanged: Boolean = false,
+      patientPhoneNumber: PatientPhoneNumber? = this.phoneNumber
   ) {
     setupControllerWithoutScreenCreated(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
@@ -647,7 +644,8 @@ class PatientSummaryScreenControllerTest {
         prescription = prescription,
         bpCount = bpCount,
         bps = bps,
-        hasPatientDataChanged = hasPatientDataChanged
+        hasPatientDataChanged = hasPatientDataChanged,
+        patientPhoneNumber = patientPhoneNumber
     )
     uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
@@ -662,7 +660,8 @@ class PatientSummaryScreenControllerTest {
       prescription: List<PrescribedDrug> = emptyList(),
       bpCount: Int = 0,
       bps: List<BloodPressureMeasurement> = emptyList(),
-      hasPatientDataChanged: Boolean = false
+      hasPatientDataChanged: Boolean = false,
+      patientPhoneNumber: PatientPhoneNumber? = this.phoneNumber
   ) {
     createController(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
@@ -674,7 +673,8 @@ class PatientSummaryScreenControllerTest {
         prescription = prescription,
         bpCount = bpCount,
         bps = bps,
-        hasPatientDataChanged = hasPatientDataChanged
+        hasPatientDataChanged = hasPatientDataChanged,
+        patientPhoneNumber = patientPhoneNumber
     )
   }
 
@@ -688,7 +688,8 @@ class PatientSummaryScreenControllerTest {
       prescription: List<PrescribedDrug>,
       bpCount: Int,
       bps: List<BloodPressureMeasurement>,
-      hasPatientDataChanged: Boolean
+      hasPatientDataChanged: Boolean,
+      patientPhoneNumber: PatientPhoneNumber?
   ) {
     val controller = PatientSummaryScreenController(
         patientRepository = patientRepository,
@@ -702,7 +703,8 @@ class PatientSummaryScreenControllerTest {
         patientPrescriptionProvider = Function1 { Observable.just(prescription) },
         bloodPressureCountProvider = Function1 { bpCount },
         bloodPressuresProvider = Function2 { _, _ -> Observable.just(bps) },
-        patientDataChangedSinceProvider = Function2 { _, _ -> hasPatientDataChanged }
+        patientDataChangedSinceProvider = Function2 { _, _ -> hasPatientDataChanged },
+        patientPhoneNumberProvider = Function1 { Observable.just(patientPhoneNumber.toOptional()) }
     )
 
     controllerSubscription = uiEvents
