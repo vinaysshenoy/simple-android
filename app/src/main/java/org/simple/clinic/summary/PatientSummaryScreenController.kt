@@ -55,7 +55,8 @@ class PatientSummaryScreenController @Inject constructor(
     private val updateMedicalHistory: Function2<MedicalHistory, Instant, Completable>,
     private val utcTimestampProvider: Function0<Instant>,
     private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
-    private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>
+    private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
+    private val bloodPressureCountProvider: Function1<UUID, Int>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -422,6 +423,6 @@ class PatientSummaryScreenController @Inject constructor(
   }
 
   private fun doesNotHaveBloodPressures(patientUuid: UUID): Boolean {
-    return bpRepository.bloodPressureCount(patientUuid) == 0
+    return bloodPressureCountProvider.call(patientUuid) == 0
   }
 }

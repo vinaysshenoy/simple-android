@@ -22,7 +22,6 @@ import org.simple.clinic.analytics.Analytics
 import org.simple.clinic.analytics.MockAnalyticsReporter
 import org.simple.clinic.bp.BloodPressureRepository
 import org.simple.clinic.drugs.PrescribedDrug
-import org.simple.clinic.drugs.PrescriptionRepository
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
@@ -528,9 +527,8 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention
   ) {
     whenever(patientRepository.hasPatientDataChangedSince(any(), any())).doReturn(true)
-    whenever(bpRepository.bloodPressureCount(patientUuid)).doReturn(1)
 
-    setupControllerWithScreenCreated(openIntention)
+    setupControllerWithScreenCreated(openIntention, bpCount = 1)
     uiEvents.onNext(PatientSummaryBackClicked())
 
     verify(ui, never()).goToPreviousScreen()
@@ -544,8 +542,6 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention,
       goBackToScreen: GoBackToScreen
   ) {
-    whenever(bpRepository.bloodPressureCount(patientUuid)).doReturn(0)
-
     setupControllerWithScreenCreated(openIntention)
     uiEvents.onNext(PatientSummaryBackClicked())
 
@@ -581,9 +577,7 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention,
       goBackToScreen: GoBackToScreen
   ) {
-    whenever(bpRepository.bloodPressureCount(patientUuid)).doReturn(1)
-
-    setupControllerWithScreenCreated(openIntention)
+    setupControllerWithScreenCreated(openIntention, bpCount = 1)
     uiEvents.onNext(PatientSummaryBackClicked())
 
     verify(ui, never()).showScheduleAppointmentSheet(patientUuid)
@@ -600,8 +594,6 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention,
       goBackToScreen: GoBackToScreen
   ) {
-    whenever(bpRepository.bloodPressureCount(patientUuid)).doReturn(0)
-
     setupControllerWithScreenCreated(openIntention)
     uiEvents.onNext(PatientSummaryBackClicked())
 
@@ -618,9 +610,7 @@ class PatientSummaryScreenControllerTest {
   fun `when all bps are not deleted, clicking on save must show the schedule appointment sheet regardless of summary changes`(
       openIntention: OpenIntention
   ) {
-    whenever(bpRepository.bloodPressureCount(patientUuid)).doReturn(1)
-
-    setupControllerWithScreenCreated(openIntention)
+    setupControllerWithScreenCreated(openIntention, bpCount = 1)
     uiEvents.onNext(PatientSummaryDoneClicked())
 
     verify(ui).showScheduleAppointmentSheet(patientUuid)
@@ -633,8 +623,6 @@ class PatientSummaryScreenControllerTest {
   fun `when all bps are deleted, clicking on save must go to the home screen regardless of summary changes`(
       openIntention: OpenIntention
   ) {
-    whenever(bpRepository.bloodPressureCount(patientUuid)).doReturn(0)
-
     setupControllerWithScreenCreated(openIntention)
     uiEvents.onNext(PatientSummaryDoneClicked())
 
@@ -653,7 +641,8 @@ class PatientSummaryScreenControllerTest {
       lastCreatedAppointment: Appointment? = null,
       updateMedicalHistory: Function2<MedicalHistory, Instant, Completable> = Function2 { _, _ -> Completable.complete() },
       medicalHistory: MedicalHistory = this.medicalHistory,
-      prescription: List<PrescribedDrug> = emptyList()
+      prescription: List<PrescribedDrug> = emptyList(),
+      bpCount: Int = 0
   ) {
     setupControllerWithoutScreenCreated(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
@@ -662,7 +651,8 @@ class PatientSummaryScreenControllerTest {
         lastCreatedAppointment = lastCreatedAppointment,
         updateMedicalHistory = updateMedicalHistory,
         medicalHistory = medicalHistory,
-        prescription = prescription
+        prescription = prescription,
+        bpCount = bpCount
     )
     uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
@@ -674,7 +664,8 @@ class PatientSummaryScreenControllerTest {
       lastCreatedAppointment: Appointment? = null,
       updateMedicalHistory: Function2<MedicalHistory, Instant, Completable> = Function2 { _, _ -> Completable.complete() },
       medicalHistory: MedicalHistory = this.medicalHistory,
-      prescription: List<PrescribedDrug> = emptyList()
+      prescription: List<PrescribedDrug> = emptyList(),
+      bpCount: Int = 0
   ) {
     createController(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
@@ -683,7 +674,8 @@ class PatientSummaryScreenControllerTest {
         lastCreatedAppointment = lastCreatedAppointment,
         updateMedicalHistory = updateMedicalHistory,
         medicalHistory = medicalHistory,
-        prescription = prescription
+        prescription = prescription,
+        bpCount = bpCount
     )
   }
 
@@ -694,7 +686,8 @@ class PatientSummaryScreenControllerTest {
       lastCreatedAppointment: Appointment?,
       updateMedicalHistory: Function2<MedicalHistory, Instant, Completable>,
       medicalHistory: MedicalHistory,
-      prescription: List<PrescribedDrug>
+      prescription: List<PrescribedDrug>,
+      bpCount: Int
   ) {
     val controller = PatientSummaryScreenController(
         patientRepository = patientRepository,
@@ -706,7 +699,8 @@ class PatientSummaryScreenControllerTest {
         updateMedicalHistory = updateMedicalHistory,
         utcTimestampProvider = Function0 { Instant.now(utcClock) },
         medicalHistoryProvider = Function1 { Observable.just(medicalHistory) },
-        patientPrescriptionProvider = Function1 { Observable.just(prescription) }
+        patientPrescriptionProvider = Function1 { Observable.just(prescription) },
+        bloodPressureCountProvider = Function1 { bpCount }
     )
 
     controllerSubscription = uiEvents
