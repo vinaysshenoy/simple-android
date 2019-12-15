@@ -15,6 +15,7 @@ import org.simple.clinic.medicalhistory.MedicalHistory
 import org.simple.clinic.medicalhistory.MedicalHistoryRepository
 import org.simple.clinic.overdue.Appointment
 import org.simple.clinic.overdue.AppointmentRepository
+import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.summary.addphone.MissingPhoneReminderRepository
 import org.simple.clinic.util.UtcClock
 import org.simple.clinic.util.filterAndUnwrapJust
@@ -72,5 +73,10 @@ class PatientSummaryScreenControllerDependencies {
   @Provides
   fun bindBloodPressuresProvider(repository: BloodPressureRepository): Function2<UUID, Int, Observable<List<BloodPressureMeasurement>>> {
     return Function2 { patientUuid, numberOfBps -> repository.newestMeasurementsForPatient(patientUuid, numberOfBps) }
+  }
+
+  @Provides
+  fun bindPatientDataChangedSinceProvider(repository: PatientRepository): Function2<UUID, Instant, Boolean> {
+    return Function2 { patientUuid, instant -> repository.hasPatientDataChangedSince(patientUuid, instant) }
   }
 }

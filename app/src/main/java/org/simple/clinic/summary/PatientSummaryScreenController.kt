@@ -56,7 +56,8 @@ class PatientSummaryScreenController @Inject constructor(
     private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
     private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
     private val bloodPressureCountProvider: Function1<UUID, Int>,
-    private val bloodPressuresProvider: Function2<UUID, Int, Observable<List<BloodPressureMeasurement>>>
+    private val bloodPressuresProvider: Function2<UUID, Int, Observable<List<BloodPressureMeasurement>>>,
+    private val patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -230,7 +231,7 @@ class PatientSummaryScreenController @Inject constructor(
 
     val hasSummaryItemChangedStream = backClicks
         .zipWith(screenCreatedEvents) { _, screenCreated -> screenCreated.patientUuid to screenCreated.screenCreatedTimestamp }
-        .map { (patientUuid, screenCreatedAt) -> patientRepository.hasPatientDataChangedSince(patientUuid, screenCreatedAt) }
+        .map { (patientUuid, screenCreatedAt) -> patientDataChangedSinceProvider.call(patientUuid, screenCreatedAt) }
 
     val allBpsForPatientDeletedStream = backClicks
         .cast<UiEvent>()
@@ -279,7 +280,7 @@ class PatientSummaryScreenController @Inject constructor(
 
     val hasSummaryItemChangedStream = events.ofType<PatientSummaryBackClicked>()
         .zipWith(screenCreatedEvents) { _, screenCreated -> screenCreated.patientUuid to screenCreated.screenCreatedTimestamp }
-        .map { (patientUuid, screenCreatedAt) -> patientRepository.hasPatientDataChangedSince(patientUuid, screenCreatedAt) }
+        .map { (patientUuid, screenCreatedAt) -> patientDataChangedSinceProvider.call(patientUuid, screenCreatedAt) }
 
     val shouldGoBackStream = Observables
         .combineLatest(hasSummaryItemChangedStream, allBpsForPatientDeletedStream)

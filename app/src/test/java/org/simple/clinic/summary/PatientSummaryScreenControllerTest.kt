@@ -519,9 +519,7 @@ class PatientSummaryScreenControllerTest {
   fun `when there are patient summary changes and at least one BP is present, clicking on back must show the schedule appointment sheet`(
       openIntention: OpenIntention
   ) {
-    whenever(patientRepository.hasPatientDataChangedSince(any(), any())).doReturn(true)
-
-    setupControllerWithScreenCreated(openIntention, bpCount = 1)
+    setupControllerWithScreenCreated(openIntention, bpCount = 1, hasPatientDataChanged = true)
     uiEvents.onNext(PatientSummaryBackClicked())
 
     verify(ui, never()).goToPreviousScreen()
@@ -636,7 +634,8 @@ class PatientSummaryScreenControllerTest {
       medicalHistory: MedicalHistory = this.medicalHistory,
       prescription: List<PrescribedDrug> = emptyList(),
       bpCount: Int = 0,
-      bps: List<BloodPressureMeasurement> = emptyList()
+      bps: List<BloodPressureMeasurement> = emptyList(),
+      hasPatientDataChanged: Boolean = false
   ) {
     setupControllerWithoutScreenCreated(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
@@ -647,7 +646,8 @@ class PatientSummaryScreenControllerTest {
         medicalHistory = medicalHistory,
         prescription = prescription,
         bpCount = bpCount,
-        bps = bps
+        bps = bps,
+        hasPatientDataChanged = hasPatientDataChanged
     )
     uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
@@ -661,7 +661,8 @@ class PatientSummaryScreenControllerTest {
       medicalHistory: MedicalHistory = this.medicalHistory,
       prescription: List<PrescribedDrug> = emptyList(),
       bpCount: Int = 0,
-      bps: List<BloodPressureMeasurement> = emptyList()
+      bps: List<BloodPressureMeasurement> = emptyList(),
+      hasPatientDataChanged: Boolean = false
   ) {
     createController(
         numberOfBpsToDisplay = numberOfBpsToDisplay,
@@ -672,7 +673,8 @@ class PatientSummaryScreenControllerTest {
         medicalHistory = medicalHistory,
         prescription = prescription,
         bpCount = bpCount,
-        bps = bps
+        bps = bps,
+        hasPatientDataChanged = hasPatientDataChanged
     )
   }
 
@@ -685,7 +687,8 @@ class PatientSummaryScreenControllerTest {
       medicalHistory: MedicalHistory,
       prescription: List<PrescribedDrug>,
       bpCount: Int,
-      bps: List<BloodPressureMeasurement>
+      bps: List<BloodPressureMeasurement>,
+      hasPatientDataChanged: Boolean
   ) {
     val controller = PatientSummaryScreenController(
         patientRepository = patientRepository,
@@ -698,7 +701,8 @@ class PatientSummaryScreenControllerTest {
         medicalHistoryProvider = Function1 { Observable.just(medicalHistory) },
         patientPrescriptionProvider = Function1 { Observable.just(prescription) },
         bloodPressureCountProvider = Function1 { bpCount },
-        bloodPressuresProvider = Function2 { _, _ -> Observable.just(bps) }
+        bloodPressuresProvider = Function2 { _, _ -> Observable.just(bps) },
+        patientDataChangedSinceProvider = Function2 { _, _ -> hasPatientDataChanged }
     )
 
     controllerSubscription = uiEvents
