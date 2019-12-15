@@ -16,6 +16,7 @@ import org.simple.clinic.bp.BloodPressureRepository
 import org.simple.clinic.drugs.PrescriptionRepository
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
+import org.simple.clinic.functions.Function2
 import org.simple.clinic.medicalhistory.Answer
 import org.simple.clinic.medicalhistory.MedicalHistory
 import org.simple.clinic.medicalhistory.MedicalHistoryQuestion
@@ -38,6 +39,7 @@ import org.simple.clinic.util.None
 import org.simple.clinic.util.exhaustive
 import org.simple.clinic.util.filterAndUnwrapJust
 import org.simple.clinic.widgets.UiEvent
+import org.threeten.bp.Instant
 import java.util.UUID
 import javax.inject.Inject
 
@@ -52,7 +54,9 @@ class PatientSummaryScreenController @Inject constructor(
     private val numberOfBpsToDisplaySupplier: Function0<Int>,
     private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
     private val markReminderAsShownConsumer: Function1<UUID, Completable>,
-    private val lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>
+    private val lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>,
+    private val updateMedicalHistory: Function2<MedicalHistory, Instant, Completable>,
+    private val utcTimestampProvider: Function0<Instant>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -185,9 +189,9 @@ class PatientSummaryScreenController @Inject constructor(
         .map { (toggleEvent, medicalHistory) ->
           updateHistory(medicalHistory, toggleEvent.question, toggleEvent.answer)
         }
-        .flatMap {
-          medicalHistoryRepository
-              .save(it)
+        .flatMap { medicalHistory ->
+          updateMedicalHistory
+              .call(medicalHistory, utcTimestampProvider.call())
               .andThen(Observable.never<UiChange>())
         }
   }

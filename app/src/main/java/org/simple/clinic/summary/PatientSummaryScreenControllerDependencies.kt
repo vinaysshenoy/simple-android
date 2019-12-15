@@ -6,10 +6,15 @@ import io.reactivex.Completable
 import io.reactivex.Observable
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
+import org.simple.clinic.functions.Function2
+import org.simple.clinic.medicalhistory.MedicalHistory
+import org.simple.clinic.medicalhistory.MedicalHistoryRepository
 import org.simple.clinic.overdue.Appointment
 import org.simple.clinic.overdue.AppointmentRepository
 import org.simple.clinic.summary.addphone.MissingPhoneReminderRepository
+import org.simple.clinic.util.UtcClock
 import org.simple.clinic.util.filterAndUnwrapJust
+import org.threeten.bp.Instant
 import java.util.UUID
 
 @Module
@@ -33,5 +38,15 @@ class PatientSummaryScreenControllerDependencies {
   @Provides
   fun bindLastCreatedAppointmentProvider(repository: AppointmentRepository): Function1<UUID, Observable<Appointment>> {
     return Function1 { repository.lastCreatedAppointmentForPatient(it).filterAndUnwrapJust() }
+  }
+
+  @Provides
+  fun bindUpdateMedicalHistory(repository: MedicalHistoryRepository): Function2<MedicalHistory, Instant, Completable> {
+    return Function2 { medicalHistory, updatedTime -> repository.save(medicalHistory, updatedTime) }
+  }
+
+  @Provides
+  fun bindUtcTimestampProvider(clock: UtcClock): Function0<Instant> {
+    return Function0 { Instant.now(clock) }
   }
 }
