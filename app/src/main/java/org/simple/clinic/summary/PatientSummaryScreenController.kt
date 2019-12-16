@@ -60,7 +60,7 @@ class PatientSummaryScreenController @AssistedInject constructor(
     private val patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>,
     private val fetchPatientPhoneNumber: Function1<UUID, Optional<PatientPhoneNumber>>,
     private val fetchBpPassport: Function1<UUID, Optional<BusinessId>>,
-    private val patientAddressProvider: Function1<UUID, Observable<PatientAddress>>,
+    private val fetchPatientAddress: Function1<UUID, PatientAddress>,
     private val fetchPatient: Function1<UUID, Patient>,
     private val markReminderAsShownEffect: Function1<UUID, Result<Unit>>,
     private val updateMedicalHistoryEffect: Function1<MedicalHistory, Result<Unit>>
@@ -80,7 +80,7 @@ class PatientSummaryScreenController @AssistedInject constructor(
     return Observable.mergeArray(
         populateList(replayedEvents),
         reportViewedPatientEvent(replayedEvents),
-        populatePatientProfile(),
+        populatePatientProfile(events),
         updateMedicalHistory(replayedEvents),
         openBloodPressureBottomSheet(replayedEvents),
         openPrescribedDrugsScreen(replayedEvents),
@@ -103,18 +103,15 @@ class PatientSummaryScreenController @AssistedInject constructor(
         .flatMap { Observable.empty<UiChange>() }
   }
 
-  private fun populatePatientProfile(): Observable<UiChange> {
-    val sharedPatients = Observable.fromCallable { fetchPatient.call(patientUuid) }
-
-    val addresses = sharedPatients
-        .map { it.addressUuid }
-        .flatMap(patientAddressProvider::call)
-
-    return addresses
-        .map { address ->
+  private fun populatePatientProfile(events: Observable<UiEvent>): Observable<UiChange> {
+    return events
+        .ofType<PatientSummaryScreenCreated>()
+        .take(1)
+        .map {
+          val patient = fetchPatient.call(patientUuid)
           PatientSummaryProfile(
-              patient = fetchPatient.call(patientUuid),
-              address = address,
+              patient = patient,
+              address = fetchPatientAddress.call(patient.addressUuid),
               phoneNumber = fetchPatientPhoneNumber.call(patientUuid),
               bpPassport = fetchBpPassport.call(patientUuid)
           )

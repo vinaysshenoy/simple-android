@@ -86,8 +86,8 @@ class PatientSummaryScreenControllerDependencies {
   }
 
   @Provides
-  fun bindPatientAddressProvider(repository: PatientRepository): Function1<UUID, Observable<PatientAddress>> {
-    return Function1 { repository.address(it).filterAndUnwrapJust() }
+  fun bindFetchPatientAddress(repository: PatientRepository): Function1<UUID, PatientAddress> {
+    return Function1 { repository.address(it).filterAndUnwrapJust().blockingFirst() }
   }
 
   @Provides
