@@ -51,6 +51,7 @@ import org.simple.clinic.util.Unicode
 import org.simple.clinic.util.UserClock
 import org.simple.clinic.util.UtcClock
 import org.simple.clinic.util.identifierdisplay.IdentifierDisplayAdapter
+import org.simple.clinic.util.unsafeLazy
 import org.simple.clinic.widgets.ScreenDestroyed
 import org.simple.clinic.widgets.UiEvent
 import org.simple.clinic.widgets.hideKeyboard
@@ -72,7 +73,7 @@ class PatientSummaryScreen(context: Context, attrs: AttributeSet) : RelativeLayo
   lateinit var screenRouter: ScreenRouter
 
   @Inject
-  lateinit var controller: PatientSummaryScreenController
+  lateinit var controller: PatientSummaryScreenController.Factory
 
   @Inject
   lateinit var activity: AppCompatActivity
@@ -113,6 +114,10 @@ class PatientSummaryScreen(context: Context, attrs: AttributeSet) : RelativeLayo
   private var patientSummaryProfile: PatientSummaryProfile? = null
 
   private var linkIdWithPatientShown: Boolean = false
+
+  private val screenKey: PatientSummaryScreenKey by unsafeLazy {
+    screenRouter.key<PatientSummaryScreenKey>(this)
+  }
 
   override fun onSaveInstanceState(): Parcelable {
     return PatientSummaryScreenSavedState(
@@ -155,7 +160,7 @@ class PatientSummaryScreen(context: Context, attrs: AttributeSet) : RelativeLayo
             editMeasurementClicks(),
             newBpClicks()
         ),
-        controller = controller,
+        controller = controller.create(screenKey.patientUuid, screenKey.intention, screenKey.screenCreatedTimestamp),
         screenDestroys = RxView.detaches(this).map { ScreenDestroyed() }
     )
   }
@@ -177,7 +182,6 @@ class PatientSummaryScreen(context: Context, attrs: AttributeSet) : RelativeLayo
   }
 
   private fun screenCreates(): Observable<UiEvent> {
-    val screenKey = screenRouter.key<PatientSummaryScreenKey>(this)
     return Observable.just(PatientSummaryScreenCreated(screenKey.patientUuid, screenKey.intention, screenKey.screenCreatedTimestamp))
   }
 

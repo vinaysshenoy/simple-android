@@ -632,40 +632,10 @@ class PatientSummaryScreenControllerTest {
       markReminderAsShownEffect: Function1<UUID, Result<Unit>> = Function1 { success(Unit) },
       updateMedicalHistoryEffect: Function1<MedicalHistory, Result<Unit>> = Function1 { success(Unit) }
   ) {
-    createController(
-        hasShownMissingPhoneReminder = hasShownMissingPhoneReminder,
-        lastCreatedAppointment = lastCreatedAppointment,
-        medicalHistory = medicalHistory,
-        prescription = prescription,
-        bpCount = bpCount,
-        bps = bps,
-        hasPatientDataChanged = hasPatientDataChanged,
-        patientPhoneNumber = patientPhoneNumber,
-        patientBpPassport = patientBpPassport,
-        patientAddress = patientAddress,
-        patient = patient,
-        markReminderAsShownEffect = markReminderAsShownEffect,
-        updateMedicalHistoryEffect = updateMedicalHistoryEffect
-    )
-    uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
-  }
-
-  private fun createController(
-      hasShownMissingPhoneReminder: Boolean,
-      lastCreatedAppointment: Appointment?,
-      medicalHistory: MedicalHistory,
-      prescription: List<PrescribedDrug>,
-      bpCount: Int,
-      bps: List<BloodPressureMeasurement>,
-      hasPatientDataChanged: Boolean,
-      patientPhoneNumber: PatientPhoneNumber?,
-      patientBpPassport: BusinessId?,
-      patientAddress: PatientAddress,
-      patient: Patient,
-      markReminderAsShownEffect: Function1<UUID, Result<Unit>>,
-      updateMedicalHistoryEffect: Function1<MedicalHistory, Result<Unit>>
-  ) {
     val controller = PatientSummaryScreenController(
+        patientUuid = patientUuid,
+        openIntention = openIntention,
+        screenCreatedTimestamp = screenCreatedTimestamp,
         hasShownMissingPhoneReminder = Function1 { hasShownMissingPhoneReminder },
         lastCreatedAppointmentProvider = Function1 { if (lastCreatedAppointment == null) Observable.never() else Observable.just(lastCreatedAppointment) },
         medicalHistoryProvider = Function1 { Observable.just(medicalHistory) },
@@ -684,5 +654,7 @@ class PatientSummaryScreenControllerTest {
     controllerSubscription = uiEvents
         .compose(controller)
         .subscribe { uiChange -> uiChange(ui) }
+
+    uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
 }

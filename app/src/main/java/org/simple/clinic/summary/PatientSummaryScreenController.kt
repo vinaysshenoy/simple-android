@@ -1,5 +1,7 @@
 package org.simple.clinic.summary
 
+import com.squareup.inject.assisted.Assisted
+import com.squareup.inject.assisted.AssistedInject
 import io.reactivex.Observable
 import io.reactivex.ObservableSource
 import io.reactivex.ObservableTransformer
@@ -41,12 +43,14 @@ import org.simple.clinic.util.exhaustive
 import org.simple.clinic.widgets.UiEvent
 import org.threeten.bp.Instant
 import java.util.UUID
-import javax.inject.Inject
 
 typealias Ui = PatientSummaryScreenUi
 typealias UiChange = (Ui) -> Unit
 
-class PatientSummaryScreenController @Inject constructor(
+class PatientSummaryScreenController @AssistedInject constructor(
+    @Assisted private val patientUuid: UUID,
+    @Assisted private val openIntention: OpenIntention,
+    @Assisted private val screenCreatedTimestamp: Instant,
     private val hasShownMissingPhoneReminder: Function1<UUID, Boolean>,
     private val lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>,
     private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
@@ -61,6 +65,11 @@ class PatientSummaryScreenController @Inject constructor(
     private val markReminderAsShownEffect: Function1<UUID, Result<Unit>>,
     private val updateMedicalHistoryEffect: Function1<MedicalHistory, Result<Unit>>
 ) : ObservableTransformer<UiEvent, UiChange> {
+
+  @AssistedInject.Factory
+  interface Factory {
+    fun create(patientUuid: UUID, openIntention: OpenIntention, screenCreatedTimestamp: Instant): PatientSummaryScreenController
+  }
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
     val replayedEvents = ReplayUntilScreenIsDestroyed(events)
