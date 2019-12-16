@@ -7,7 +7,6 @@ import org.simple.clinic.bp.BloodPressureMeasurement
 import org.simple.clinic.bp.BloodPressureRepository
 import org.simple.clinic.drugs.PrescribedDrug
 import org.simple.clinic.drugs.PrescriptionRepository
-import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
 import org.simple.clinic.medicalhistory.MedicalHistory
@@ -21,7 +20,6 @@ import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.patient.businessid.BusinessId
 import org.simple.clinic.summary.addphone.MissingPhoneReminderRepository
 import org.simple.clinic.util.Optional
-import org.simple.clinic.util.UtcClock
 import org.simple.clinic.util.filterAndUnwrapJust
 import org.threeten.bp.Instant
 import java.util.UUID
@@ -45,13 +43,8 @@ class PatientSummaryScreenControllerDependencies {
   }
 
   @Provides
-  fun bindUpdateMedicalHistoryEffect(repository: MedicalHistoryRepository): Function2<MedicalHistory, Instant, Result<Unit>> {
-    return Function2 { medicalHistory, _ -> repository.update(medicalHistory) }
-  }
-
-  @Provides
-  fun bindUtcTimestampProvider(clock: UtcClock): Function0<Instant> {
-    return Function0 { Instant.now(clock) }
+  fun bindUpdateMedicalHistoryEffect(repository: MedicalHistoryRepository): Function1<MedicalHistory, Result<Unit>> {
+    return Function1(repository::update)
   }
 
   @Provides

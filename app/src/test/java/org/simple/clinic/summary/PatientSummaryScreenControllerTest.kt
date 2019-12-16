@@ -19,7 +19,6 @@ import org.simple.clinic.analytics.Analytics
 import org.simple.clinic.analytics.MockAnalyticsReporter
 import org.simple.clinic.bp.BloodPressureMeasurement
 import org.simple.clinic.drugs.PrescribedDrug
-import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
 import org.simple.clinic.functions.MockFunctions
@@ -212,8 +211,7 @@ class PatientSummaryScreenControllerTest {
         hasDiabetes = Unanswered,
         updatedAt = Instant.now(utcClock))
 
-    val now = Instant.now(utcClock)
-    val updateMedicalHistory = MockFunctions.function2<MedicalHistory, Instant, Result<Unit>>(success(Unit))
+    val updateMedicalHistory = MockFunctions.function1<MedicalHistory, Result<Unit>>(success(Unit))
 
     setupControllerWithScreenCreated(
         openIntention,
@@ -230,7 +228,7 @@ class PatientSummaryScreenControllerTest {
         hasHadStroke = if (question == HAS_HAD_A_STROKE) newAnswer else Unanswered,
         hasHadKidneyDisease = if (question == HAS_HAD_A_KIDNEY_DISEASE) newAnswer else Unanswered,
         hasDiabetes = if (question == HAS_DIABETES) newAnswer else Unanswered)
-    updateMedicalHistory.invocations.assertCalledWithParameters(updatedMedicalHistory, now)
+    updateMedicalHistory.invocations.assertCalledWithParameters(updatedMedicalHistory)
   }
 
   @Suppress("unused")
@@ -632,7 +630,7 @@ class PatientSummaryScreenControllerTest {
       patientAddress: PatientAddress = this.patientAddress,
       patient: Patient = this.patient,
       markReminderAsShownEffect: Function1<UUID, Result<Unit>> = Function1 { success(Unit) },
-      updateMedicalHistoryEffect: Function2<MedicalHistory, Instant, Result<Unit>> = Function2 { _, _ -> success(Unit) }
+      updateMedicalHistoryEffect: Function1<MedicalHistory, Result<Unit>> = Function1 { success(Unit) }
   ) {
     setupControllerWithoutScreenCreated(
         hasShownMissingPhoneReminder = hasShownMissingPhoneReminder,
@@ -665,7 +663,7 @@ class PatientSummaryScreenControllerTest {
       patientAddress: PatientAddress = this.patientAddress,
       patient: Patient = this.patient,
       markReminderAsShownEffect: Function1<UUID, Result<Unit>> = Function1 { success(Unit) },
-      updateMedicalHistoryEffect: Function2<MedicalHistory, Instant, Result<Unit>> = Function2 { _, _ -> success(Unit) }
+      updateMedicalHistoryEffect: Function1<MedicalHistory, Result<Unit>> = Function1 { success(Unit) }
   ) {
     createController(
         hasShownMissingPhoneReminder = hasShownMissingPhoneReminder,
@@ -697,12 +695,11 @@ class PatientSummaryScreenControllerTest {
       patientAddress: PatientAddress,
       patient: Patient,
       markReminderAsShownEffect: Function1<UUID, Result<Unit>>,
-      updateMedicalHistoryEffect: Function2<MedicalHistory, Instant, Result<Unit>>
+      updateMedicalHistoryEffect: Function1<MedicalHistory, Result<Unit>>
   ) {
     val controller = PatientSummaryScreenController(
         hasShownMissingPhoneReminderProvider = Function1 { Observable.just(hasShownMissingPhoneReminder) },
         lastCreatedAppointmentProvider = Function1 { if (lastCreatedAppointment == null) Observable.never() else Observable.just(lastCreatedAppointment) },
-        utcTimestampProvider = Function0 { Instant.now(utcClock) },
         medicalHistoryProvider = Function1 { Observable.just(medicalHistory) },
         patientPrescriptionProvider = Function1 { Observable.just(prescription) },
         bloodPressureCountProvider = Function1 { bpCount },
@@ -713,7 +710,7 @@ class PatientSummaryScreenControllerTest {
         patientAddressProvider = Function1 { Observable.just(patientAddress) },
         patientProvider = Function1 { Observable.just(patient) },
         markReminderAsShownEffect = markReminderAsShownEffect,
-        updateMedicalHistoryEffect = updateMedicalHistoryEffect
+        updateMedicalHistoryEffect2 = updateMedicalHistoryEffect
     )
 
     controllerSubscription = uiEvents

@@ -13,7 +13,6 @@ import org.simple.clinic.ReportAnalyticsEvents
 import org.simple.clinic.analytics.Analytics
 import org.simple.clinic.bp.BloodPressureMeasurement
 import org.simple.clinic.drugs.PrescribedDrug
-import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
 import org.simple.clinic.medicalhistory.Answer
@@ -50,7 +49,6 @@ typealias UiChange = (Ui) -> Unit
 class PatientSummaryScreenController @Inject constructor(
     private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
     private val lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>,
-    private val utcTimestampProvider: Function0<Instant>,
     private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
     private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
     private val bloodPressureCountProvider: Function1<UUID, Int>,
@@ -61,7 +59,7 @@ class PatientSummaryScreenController @Inject constructor(
     private val patientAddressProvider: Function1<UUID, Observable<PatientAddress>>,
     private val patientProvider: Function1<UUID, Observable<Patient>>,
     private val markReminderAsShownEffect: Function1<UUID, Result<Unit>>,
-    private val updateMedicalHistoryEffect: Function2<MedicalHistory, Instant, Result<Unit>>
+    private val updateMedicalHistoryEffect2: Function1<MedicalHistory, Result<Unit>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -186,7 +184,7 @@ class PatientSummaryScreenController @Inject constructor(
         .map { (toggleEvent, medicalHistory) ->
           updateHistory(medicalHistory, toggleEvent.question, toggleEvent.answer)
         }
-        .map { medicalHistory -> updateMedicalHistoryEffect.call(medicalHistory, utcTimestampProvider.call()) }
+        .map(updateMedicalHistoryEffect2::call)
         .flatMap { Observable.never<UiChange>() }
   }
 
