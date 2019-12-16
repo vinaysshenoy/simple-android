@@ -107,7 +107,7 @@ class PatientSummaryScreenControllerTest {
     val address = PatientMocker.address(uuid = addressUuid)
     val phoneNumber = None
 
-    setupControllerWithScreenCreated(
+    setupController(
         openIntention = intention,
         patientPhoneNumber = null,
         patientBpPassport = bpPassport,
@@ -137,7 +137,7 @@ class PatientSummaryScreenControllerTest {
         PatientMocker.prescription(name = "Telmisartan", dosage = "9000mg"),
         PatientMocker.prescription(name = "Randomzole", dosage = "2 packets"))
 
-    setupControllerWithScreenCreated(intention, prescription = prescriptions)
+    setupController(intention, prescription = prescriptions)
 
     verify(ui).populateList(prescriptions, emptyList(), medicalHistory)
   }
@@ -150,7 +150,7 @@ class PatientSummaryScreenControllerTest {
         PatientMocker.bp(patientUuid, systolic = 164, diastolic = 95, recordedAt = Instant.now(utcClock).minusSeconds(30L)),
         PatientMocker.bp(patientUuid, systolic = 144, diastolic = 90, recordedAt = Instant.now(utcClock).minusSeconds(45L)))
 
-    setupControllerWithScreenCreated(intention, bps = bloodPressureMeasurements)
+    setupController(intention, bps = bloodPressureMeasurements)
 
     verify(ui).populateList(emptyList(), bloodPressureMeasurements, medicalHistory)
   }
@@ -160,7 +160,7 @@ class PatientSummaryScreenControllerTest {
   fun `patient's medical history should be populated`(openIntention: OpenIntention) {
     val medicalHistory = PatientMocker.medicalHistory(updatedAt = Instant.now(utcClock))
 
-    setupControllerWithScreenCreated(openIntention, medicalHistory = medicalHistory)
+    setupController(openIntention, medicalHistory = medicalHistory)
 
     verify(ui).populateList(emptyList(), emptyList(), medicalHistory)
   }
@@ -168,7 +168,7 @@ class PatientSummaryScreenControllerTest {
   @Test
   @Parameters(method = "patient summary open intentions")
   fun `when new-BP is clicked then BP entry sheet should be shown`(openIntention: OpenIntention) {
-    setupControllerWithScreenCreated(openIntention)
+    setupController(openIntention)
     uiEvents.onNext(PatientSummaryNewBpClicked())
 
     verify(ui).showBloodPressureEntrySheet(patientUuid)
@@ -177,7 +177,7 @@ class PatientSummaryScreenControllerTest {
   @Test
   @Parameters(method = "patient summary open intentions")
   fun `when update medicines is clicked then BP medicines screen should be shown`(openIntention: OpenIntention) {
-    setupControllerWithScreenCreated(openIntention)
+    setupController(openIntention)
     uiEvents.onNext(PatientSummaryUpdateDrugsClicked())
 
     verify(ui).showUpdatePrescribedDrugsScreen(patientUuid)
@@ -186,7 +186,7 @@ class PatientSummaryScreenControllerTest {
   @Test
   @Parameters(method = "patient summary open intentions")
   fun `when the screen is opened, the viewed patient analytics event must be sent`(openIntention: OpenIntention) {
-    setupControllerWithScreenCreated(openIntention)
+    setupController(openIntention)
 
     val expectedEvent = MockAnalyticsReporter.Event("ViewedPatient", mapOf(
         "patientId" to patientUuid.toString(),
@@ -213,7 +213,7 @@ class PatientSummaryScreenControllerTest {
 
     val updateMedicalHistory = MockFunctions.function1<MedicalHistory, Result<Unit>>(success(Unit))
 
-    setupControllerWithScreenCreated(
+    setupController(
         openIntention,
         medicalHistory = medicalHistory,
         updateMedicalHistoryEffect = updateMedicalHistory
@@ -248,7 +248,7 @@ class PatientSummaryScreenControllerTest {
 
   @Test
   fun `when blood pressure is clicked for editing, blood pressure update sheet should show up`() {
-    setupControllerWithoutScreenCreated()
+    setupController(OpenIntention.ViewExistingPatient)
 
     val bloodPressureMeasurement = PatientMocker.bp()
     uiEvents.onNext(PatientSummaryBpClicked(bloodPressureMeasurement))
@@ -265,7 +265,7 @@ class PatientSummaryScreenControllerTest {
     val canceledAppointment = PatientMocker.appointment(status = Cancelled, cancelReason = cancelReason)
     val phoneNumber = this.phoneNumber.copy(updatedAt = canceledAppointment.updatedAt - Duration.ofHours(2))
 
-    setupControllerWithScreenCreated(
+    setupController(
         openIntention = openIntention,
         lastCreatedAppointment = canceledAppointment,
         patientPhoneNumber = phoneNumber
@@ -287,7 +287,7 @@ class PatientSummaryScreenControllerTest {
     val canceledAppointment = PatientMocker.appointment(status = Cancelled, cancelReason = cancelReason)
     val phoneNumber = this.phoneNumber.copy(updatedAt = canceledAppointment.updatedAt + Duration.ofHours(2))
 
-    setupControllerWithScreenCreated(
+    setupController(
         openIntention = openIntention,
         lastCreatedAppointment = canceledAppointment,
         patientPhoneNumber = phoneNumber
@@ -302,7 +302,7 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention,
       cancelReason: AppointmentCancelReason
   ) {
-    setupControllerWithScreenCreated(openIntention, lastCreatedAppointment = PatientMocker.appointment(cancelReason = cancelReason))
+    setupController(openIntention, lastCreatedAppointment = PatientMocker.appointment(cancelReason = cancelReason))
 
     verify(ui, never()).showUpdatePhoneDialog(patientUuid)
   }
@@ -318,14 +318,14 @@ class PatientSummaryScreenControllerTest {
   fun `when a canceled appointment with the patient does not exist then update phone dialog should not be shown`(
       openIntention: OpenIntention
   ) {
-    setupControllerWithScreenCreated(openIntention, lastCreatedAppointment = PatientMocker.appointment(status = Scheduled, cancelReason = null))
+    setupController(openIntention, lastCreatedAppointment = PatientMocker.appointment(status = Scheduled, cancelReason = null))
 
     verify(ui, never()).showUpdatePhoneDialog(patientUuid)
   }
 
   @Test
   fun `when a new patient is missing a phone number, then avoid showing update phone dialog`() {
-    setupControllerWithScreenCreated(
+    setupController(
         openIntention = OpenIntention.ViewNewPatient,
         lastCreatedAppointment = null,
         patientPhoneNumber = null
@@ -341,7 +341,7 @@ class PatientSummaryScreenControllerTest {
   ) {
     val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
 
-    setupControllerWithScreenCreated(
+    setupController(
         openIntention,
         hasShownMissingPhoneReminder = false,
         patientPhoneNumber = null,
@@ -359,7 +359,7 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention
   ) {
     val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
-    setupControllerWithScreenCreated(openIntention, patientPhoneNumber = null, markReminderAsShownEffect = markReminderAsShown)
+    setupController(openIntention, patientPhoneNumber = null, markReminderAsShownEffect = markReminderAsShown)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
     markReminderAsShown.invocations.assertNeverCalled()
@@ -371,7 +371,7 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention
   ) {
     val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
-    setupControllerWithScreenCreated(openIntention, patientPhoneNumber = null, markReminderAsShownEffect = markReminderAsShown)
+    setupController(openIntention, patientPhoneNumber = null, markReminderAsShownEffect = markReminderAsShown)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
     markReminderAsShown.invocations.assertNeverCalled()
@@ -381,7 +381,7 @@ class PatientSummaryScreenControllerTest {
   @Parameters(method = "patient summary open intentions except new patient")
   fun `when an existing patient has a phone number, then add phone dialog should not be shown`(openIntention: OpenIntention) {
     val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
-    setupControllerWithScreenCreated(openIntention, markReminderAsShownEffect = markReminderAsShown)
+    setupController(openIntention, markReminderAsShownEffect = markReminderAsShown)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
     markReminderAsShown.invocations.assertNeverCalled()
@@ -391,7 +391,7 @@ class PatientSummaryScreenControllerTest {
   @Parameters(method = "patient summary open intentions except new patient")
   fun `when a new patient has a phone number, then add phone dialog should not be shown`(openIntention: OpenIntention) {
     val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
-    setupControllerWithScreenCreated(openIntention, markReminderAsShownEffect = markReminderAsShown)
+    setupController(openIntention, markReminderAsShownEffect = markReminderAsShown)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
     markReminderAsShown.invocations.assertNeverCalled()
@@ -401,7 +401,7 @@ class PatientSummaryScreenControllerTest {
   @Parameters(method = "patient summary open intentions except new patient")
   fun `when a new patient is missing a phone number, then add phone dialog should not be shown`(openIntention: OpenIntention) {
     val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
-    setupControllerWithScreenCreated(
+    setupController(
         openIntention,
         patientPhoneNumber = null,
         markReminderAsShownEffect = markReminderAsShown
@@ -460,7 +460,7 @@ class PatientSummaryScreenControllerTest {
       shouldShowLinkIdSheet: Boolean,
       identifier: Identifier?
   ) {
-    setupControllerWithScreenCreated(openIntention)
+    setupController(openIntention)
 
     if (shouldShowLinkIdSheet) {
       verify(ui).showLinkIdWithPatientView(patientUuid, identifier!!)
@@ -483,7 +483,7 @@ class PatientSummaryScreenControllerTest {
   @Test
   fun `when the link id with patient is cancelled, the patient summary screen must be closed`() {
     val openIntention = OpenIntention.LinkIdWithPatient(identifier = Identifier("id", BpPassport))
-    setupControllerWithScreenCreated(openIntention)
+    setupController(openIntention)
 
     uiEvents.onNext(PatientSummaryLinkIdCancelled)
 
@@ -493,7 +493,7 @@ class PatientSummaryScreenControllerTest {
   @Test
   fun `when the link id with patient is completed, the link id screen must be closed`() {
     val openIntention = OpenIntention.LinkIdWithPatient(identifier = Identifier("id", BpPassport))
-    setupControllerWithScreenCreated(openIntention)
+    setupController(openIntention)
 
     uiEvents.onNext(PatientSummaryLinkIdCompleted)
 
@@ -511,7 +511,7 @@ class PatientSummaryScreenControllerTest {
   fun `when there are patient summary changes and at least one BP is present, clicking on back must show the schedule appointment sheet`(
       openIntention: OpenIntention
   ) {
-    setupControllerWithScreenCreated(openIntention, bpCount = 1, hasPatientDataChanged = true)
+    setupController(openIntention, bpCount = 1, hasPatientDataChanged = true)
     uiEvents.onNext(PatientSummaryBackClicked())
 
     verify(ui, never()).goToPreviousScreen()
@@ -525,7 +525,7 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention,
       goBackToScreen: GoBackToScreen
   ) {
-    setupControllerWithScreenCreated(openIntention)
+    setupController(openIntention)
     uiEvents.onNext(PatientSummaryBackClicked())
 
     verify(ui, never()).showScheduleAppointmentSheet(patientUuid)
@@ -560,7 +560,7 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention,
       goBackToScreen: GoBackToScreen
   ) {
-    setupControllerWithScreenCreated(openIntention, bpCount = 1)
+    setupController(openIntention, bpCount = 1)
     uiEvents.onNext(PatientSummaryBackClicked())
 
     verify(ui, never()).showScheduleAppointmentSheet(patientUuid)
@@ -577,7 +577,7 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention,
       goBackToScreen: GoBackToScreen
   ) {
-    setupControllerWithScreenCreated(openIntention)
+    setupController(openIntention)
     uiEvents.onNext(PatientSummaryBackClicked())
 
     verify(ui, never()).showScheduleAppointmentSheet(patientUuid)
@@ -593,7 +593,7 @@ class PatientSummaryScreenControllerTest {
   fun `when all bps are not deleted, clicking on save must show the schedule appointment sheet regardless of summary changes`(
       openIntention: OpenIntention
   ) {
-    setupControllerWithScreenCreated(openIntention, bpCount = 1)
+    setupController(openIntention, bpCount = 1)
     uiEvents.onNext(PatientSummaryDoneClicked())
 
     verify(ui).showScheduleAppointmentSheet(patientUuid)
@@ -606,7 +606,7 @@ class PatientSummaryScreenControllerTest {
   fun `when all bps are deleted, clicking on save must go to the home screen regardless of summary changes`(
       openIntention: OpenIntention
   ) {
-    setupControllerWithScreenCreated(openIntention)
+    setupController(openIntention)
     uiEvents.onNext(PatientSummaryDoneClicked())
 
     verify(ui, never()).showScheduleAppointmentSheet(patientUuid)
@@ -614,43 +614,10 @@ class PatientSummaryScreenControllerTest {
     verify(ui).goToHomeScreen()
   }
 
-  private fun setupControllerWithScreenCreated(
+  private fun setupController(
       openIntention: OpenIntention,
       patientUuid: UUID = this.patientUuid,
       screenCreatedTimestamp: Instant = Instant.now(utcClock),
-      hasShownMissingPhoneReminder: Boolean = true,
-      lastCreatedAppointment: Appointment? = null,
-      medicalHistory: MedicalHistory = this.medicalHistory,
-      prescription: List<PrescribedDrug> = emptyList(),
-      bpCount: Int = 0,
-      bps: List<BloodPressureMeasurement> = emptyList(),
-      hasPatientDataChanged: Boolean = false,
-      patientPhoneNumber: PatientPhoneNumber? = this.phoneNumber,
-      patientBpPassport: BusinessId? = this.bpPassport,
-      patientAddress: PatientAddress = this.patientAddress,
-      patient: Patient = this.patient,
-      markReminderAsShownEffect: Function1<UUID, Result<Unit>> = Function1 { success(Unit) },
-      updateMedicalHistoryEffect: Function1<MedicalHistory, Result<Unit>> = Function1 { success(Unit) }
-  ) {
-    setupControllerWithoutScreenCreated(
-        hasShownMissingPhoneReminder = hasShownMissingPhoneReminder,
-        lastCreatedAppointment = lastCreatedAppointment,
-        medicalHistory = medicalHistory,
-        prescription = prescription,
-        bpCount = bpCount,
-        bps = bps,
-        hasPatientDataChanged = hasPatientDataChanged,
-        patientPhoneNumber = patientPhoneNumber,
-        patientBpPassport = patientBpPassport,
-        patientAddress = patientAddress,
-        patient = patient,
-        markReminderAsShownEffect = markReminderAsShownEffect,
-        updateMedicalHistoryEffect = updateMedicalHistoryEffect
-    )
-    uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
-  }
-
-  private fun setupControllerWithoutScreenCreated(
       hasShownMissingPhoneReminder: Boolean = true,
       lastCreatedAppointment: Appointment? = null,
       medicalHistory: MedicalHistory = this.medicalHistory,
@@ -680,6 +647,7 @@ class PatientSummaryScreenControllerTest {
         markReminderAsShownEffect = markReminderAsShownEffect,
         updateMedicalHistoryEffect = updateMedicalHistoryEffect
     )
+    uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
 
   private fun createController(
