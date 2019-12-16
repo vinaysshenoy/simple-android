@@ -11,6 +11,7 @@ import org.simple.clinic.medicalhistory.Answer.No
 import org.simple.clinic.medicalhistory.Answer.Unanswered
 import org.simple.clinic.medicalhistory.Answer.Yes
 import org.simple.clinic.patient.SyncStatus
+import org.simple.clinic.util.ResultSubject
 import org.simple.clinic.util.RxErrorsRule
 import org.simple.clinic.util.UtcClock
 import org.threeten.bp.Instant
@@ -92,10 +93,11 @@ class MedicalHistoryRepositoryAndroidTest {
     repository.save(listOf(oldHistory)).blockingAwait()
 
     val newHistory = oldHistory.copy(hasHadHeartAttack = Yes)
-    repository.save(newHistory).blockingAwait()
+    val result = repository.update(newHistory)
 
     val updatedHistory = repository.historyForPatientOrDefault(patientUuid).blockingFirst()
 
+    ResultSubject.assertThat(result).isSuccess()
     assertThat(updatedHistory.hasHadHeartAttack).isEqualTo(Yes)
     assertThat(updatedHistory.syncStatus).isEqualTo(SyncStatus.PENDING)
     assertThat(updatedHistory.updatedAt).isEqualTo(clock.instant())

@@ -2,7 +2,6 @@ package org.simple.clinic.summary
 
 import dagger.Module
 import dagger.Provides
-import io.reactivex.Completable
 import io.reactivex.Observable
 import org.simple.clinic.bp.BloodPressureMeasurement
 import org.simple.clinic.bp.BloodPressureRepository
@@ -47,14 +46,7 @@ class PatientSummaryScreenControllerDependencies {
 
   @Provides
   fun bindUpdateMedicalHistoryEffect(repository: MedicalHistoryRepository): Function2<MedicalHistory, Instant, Result<Unit>> {
-    return Function2 { medicalHistory, updatedTime ->
-      try {
-        repository.save(medicalHistory, updatedTime).blockingAwait()
-        Result.success(Unit)
-      } catch (e: Throwable) {
-        Result.failure(e)
-      }
-    }
+    return Function2 { medicalHistory, _ -> repository.update(medicalHistory) }
   }
 
   @Provides

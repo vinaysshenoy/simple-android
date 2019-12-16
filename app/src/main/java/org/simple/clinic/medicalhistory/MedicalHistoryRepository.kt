@@ -13,6 +13,8 @@ import org.simple.clinic.util.UtcClock
 import org.threeten.bp.Instant
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.Result.Companion.failure
+import kotlin.Result.Companion.success
 
 class MedicalHistoryRepository @Inject constructor(
     private val dao: MedicalHistory.RoomDao,
@@ -78,12 +80,14 @@ class MedicalHistoryRepository @Inject constructor(
     }
   }
 
-  fun save(history: MedicalHistory, updateTime: Instant): Completable {
-    return Completable.fromAction {
-      val dirtyHistory = history.copy(
-          syncStatus = SyncStatus.PENDING,
-          updatedAt = updateTime)
-      dao.save(dirtyHistory)
+  fun update(history: MedicalHistory): Result<Unit> {
+    val updatedHistory = history.copy(updatedAt = Instant.now(utcClock), syncStatus = SyncStatus.PENDING)
+
+    return try {
+      dao.save(updatedHistory)
+      success(Unit)
+    } catch (e: Throwable) {
+      failure(e)
     }
   }
 
