@@ -21,7 +21,6 @@ import org.simple.clinic.patient.businessid.BusinessId
 import org.simple.clinic.summary.addphone.MissingPhoneReminderRepository
 import org.simple.clinic.util.Optional
 import org.simple.clinic.util.filterAndUnwrapJust
-import org.simple.clinic.util.toOptional
 import org.threeten.bp.Instant
 import java.util.UUID
 
@@ -82,8 +81,8 @@ class PatientSummaryScreenControllerDependencies {
   }
 
   @Provides
-  fun bindPatientBpPassportProvider(repository: PatientRepository): Function1<UUID, Observable<Optional<BusinessId>>> {
-    return Function1 { repository.bpPassportForPatient(it) }
+  fun bindFetchBpPassport(repository: PatientRepository): Function1<UUID, Optional<BusinessId>> {
+    return Function1 { repository.bpPassportForPatient(it).blockingFirst() }
   }
 
   @Provides

@@ -59,7 +59,7 @@ class PatientSummaryScreenController @AssistedInject constructor(
     private val bloodPressuresProvider: Function1<UUID, Observable<List<BloodPressureMeasurement>>>,
     private val patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>,
     private val fetchPatientPhoneNumber: Function1<UUID, Optional<PatientPhoneNumber>>,
-    private val patientBpPassportProvider: Function1<UUID, Observable<Optional<BusinessId>>>,
+    private val fetchBpPassport: Function1<UUID, Optional<BusinessId>>,
     private val patientAddressProvider: Function1<UUID, Observable<PatientAddress>>,
     private val patientProvider: Function1<UUID, Observable<Patient>>,
     private val markReminderAsShownEffect: Function1<UUID, Result<Unit>>,
@@ -112,15 +112,13 @@ class PatientSummaryScreenController @AssistedInject constructor(
         .map { it.addressUuid }
         .flatMap(patientAddressProvider::call)
 
-    val bpPassports = patientBpPassportProvider.call(patientUuid)
-
     return Observables
-        .combineLatest(sharedPatients, addresses, bpPassports) { patient, address, bpPassport ->
+        .combineLatest(sharedPatients, addresses) { patient, address ->
           PatientSummaryProfile(
               patient = patient,
               address = address,
               phoneNumber = fetchPatientPhoneNumber.call(patientUuid),
-              bpPassport = bpPassport
+              bpPassport = fetchBpPassport.call(patientUuid)
           )
         }
         .map { patientSummaryProfile -> { ui: Ui -> showPatientSummaryProfile(ui, patientSummaryProfile) } }
