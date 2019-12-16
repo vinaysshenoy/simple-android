@@ -28,8 +28,8 @@ import java.util.UUID
 class PatientSummaryScreenControllerDependencies {
 
   @Provides
-  fun bindHasShownMissingPhoneReminderProvider(repository: MissingPhoneReminderRepository): Function1<UUID, Observable<Boolean>> {
-    return Function1 { repository.hasShownReminderFor(it).toObservable() }
+  fun bindHasShownMissingPhoneReminder(repository: MissingPhoneReminderRepository): Function1<UUID, Boolean> {
+    return Function1 { repository.hasShownReminderFor(it).blockingGet() }
   }
 
   @Provides

@@ -698,7 +698,7 @@ class PatientSummaryScreenControllerTest {
       updateMedicalHistoryEffect: Function1<MedicalHistory, Result<Unit>>
   ) {
     val controller = PatientSummaryScreenController(
-        hasShownMissingPhoneReminderProvider = Function1 { Observable.just(hasShownMissingPhoneReminder) },
+        hasShownMissingPhoneReminder = Function1 { hasShownMissingPhoneReminder },
         lastCreatedAppointmentProvider = Function1 { if (lastCreatedAppointment == null) Observable.never() else Observable.just(lastCreatedAppointment) },
         medicalHistoryProvider = Function1 { Observable.just(medicalHistory) },
         patientPrescriptionProvider = Function1 { Observable.just(prescription) },

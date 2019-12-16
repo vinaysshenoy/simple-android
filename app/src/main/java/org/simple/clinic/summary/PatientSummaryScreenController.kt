@@ -47,7 +47,7 @@ typealias Ui = PatientSummaryScreenUi
 typealias UiChange = (Ui) -> Unit
 
 class PatientSummaryScreenController @Inject constructor(
-    private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
+    private val hasShownMissingPhoneReminder: Function1<UUID, Boolean>,
     private val lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>,
     private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
     private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
@@ -387,8 +387,10 @@ class PatientSummaryScreenController @Inject constructor(
 
   private fun isMissingPhoneAndShouldBeReminded(patientUuid: UUID): Observable<Boolean> {
     return patientPhoneNumberProvider.call(patientUuid)
-        .zipWith(hasShownMissingPhoneReminderProvider.call(patientUuid))
-        .map { (number, reminderShown) -> number is None && reminderShown.not() }
+        .map { number ->
+          val reminderShown = hasShownMissingPhoneReminder.call(patientUuid)
+          number is None && reminderShown.not()
+        }
   }
 
   private fun lastCancelledAppointmentWithInvalidPhone(patientUuid: UUID): Observable<Appointment> {
