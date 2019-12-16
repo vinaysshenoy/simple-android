@@ -55,6 +55,10 @@ tasks.withType(Test) {
 }
 
 android {
+  kotlinOptions {
+    freeCompilerArgs = ["-Xallow-result-return-type"]
+  }
+
   compileSdkVersion versions.compileSdk
 
   defaultConfig {
@@ -213,10 +217,10 @@ dependencies {
   androidTestImplementation "androidx.arch.core:core-testing:$versions.coreTesting"
   kaptAndroidTest "com.google.dagger:dagger-compiler:$versions.dagger"
 
-  debugImplementation ("com.facebook.stetho:stetho:$versions.stetho") {
+  debugImplementation("com.facebook.stetho:stetho:$versions.stetho") {
     exclude group: "com.google.code.findbugs", module: "jsr305"
   }
-  debugImplementation ("com.facebook.stetho:stetho-okhttp3:$versions.stetho") {
+  debugImplementation("com.facebook.stetho:stetho-okhttp3:$versions.stetho") {
     exclude group: "com.google.code.findbugs", module: "jsr305"
   }
 

@@ -33,9 +33,10 @@ class MissingPhoneReminderRepositoryAndroidTest {
   @Test
   fun saving_a_reminder_should_work() {
     val remindedAt = Instant.now(clock)
-    repository.markReminderAsShownFor(patientUuid).blockingAwait()
+    val result = repository.markReminderAsShownFor2(patientUuid)
 
     val savedReminder = dao.get(patientUuid).blockingFirst().first()
+    assertThat(result.isSuccess).isTrue()
     assertThat(savedReminder).isEqualTo(MissingPhoneReminder(patientUuid, remindedAt))
   }
 
@@ -48,9 +49,10 @@ class MissingPhoneReminderRepositoryAndroidTest {
 
   @Test
   fun when_a_reminder_isnt_present_then_retrieving_it_shouldnt_work() {
-    repository.markReminderAsShownFor(patientUuid).blockingAwait()
+    val result = repository.markReminderAsShownFor2(patientUuid)
 
     val hasASavedReminder = repository.hasShownReminderFor(patientUuid).blockingGet()
+    assertThat(result.isSuccess).isTrue()
     assertThat(hasASavedReminder).isTrue()
   }
 }
