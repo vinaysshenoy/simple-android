@@ -36,8 +36,15 @@ class PatientSummaryScreenControllerDependencies {
   }
 
   @Provides
-  fun bindMarkReminderAsShownConsumer(repository: MissingPhoneReminderRepository): Function1<UUID, Completable> {
-    return Function1 { repository.markReminderAsShownFor(it) }
+  fun bindMarkReminderAsShownEffect(repository: MissingPhoneReminderRepository): Function1<UUID, Result<Unit>> {
+    return Function1 {
+      try {
+        repository.markReminderAsShownFor(it).blockingAwait()
+        Result.success(Unit)
+      } catch (e: Throwable) {
+        Result.failure(e)
+      }
+    }
   }
 
   @Provides

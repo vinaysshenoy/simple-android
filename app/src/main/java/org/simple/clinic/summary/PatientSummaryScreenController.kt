@@ -50,7 +50,6 @@ typealias UiChange = (Ui) -> Unit
 
 class PatientSummaryScreenController @Inject constructor(
     private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
-    private val markReminderAsShownConsumer: Function1<UUID, Completable>,
     private val lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>,
     private val updateMedicalHistory: Function2<MedicalHistory, Instant, Completable>,
     private val utcTimestampProvider: Function0<Instant>,
@@ -62,7 +61,8 @@ class PatientSummaryScreenController @Inject constructor(
     private val patientPhoneNumberProvider: Function1<UUID, Observable<Optional<PatientPhoneNumber>>>,
     private val patientBpPassportProvider: Function1<UUID, Observable<Optional<BusinessId>>>,
     private val patientAddressProvider: Function1<UUID, Observable<PatientAddress>>,
-    private val patientProvider: Function1<UUID, Observable<Patient>>
+    private val patientProvider: Function1<UUID, Observable<Patient>>,
+    private val markReminderAsShownEffect: Function1<UUID, Result<Unit>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -377,10 +377,8 @@ class PatientSummaryScreenController @Inject constructor(
           isMissingPhoneAndShouldBeReminded(patientUuid)
               .take(1)
               .filter { missing -> missing }
-              .flatMap {
-                markReminderAsShownConsumer.call(patientUuid)
-                    .andThen(Observable.just({ ui: Ui -> ui.showAddPhoneDialog(patientUuid) }))
-              }
+              .map { markReminderAsShownEffect.call(patientUuid) }
+              .flatMap { Observable.just { ui: Ui -> ui.showAddPhoneDialog(patientUuid) } }
         }
 
     return showForInvalidPhone.mergeWith(showForMissingPhone)
