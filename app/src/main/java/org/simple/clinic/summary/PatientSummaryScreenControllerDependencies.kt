@@ -76,8 +76,8 @@ class PatientSummaryScreenControllerDependencies {
   }
 
   @Provides
-  fun bindPatientPhoneNumberProvider(repository: PatientRepository): Function1<UUID, Observable<Optional<PatientPhoneNumber>>> {
-    return Function1 { repository.phoneNumber(it) }
+  fun bindFetchPatientPhoneNumber(repository: PatientRepository): Function1<UUID, Optional<PatientPhoneNumber>> {
+    return Function1 { repository.phoneNumber(it).blockingFirst() }
   }
 
   @Provides

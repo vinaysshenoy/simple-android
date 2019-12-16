@@ -34,10 +34,10 @@ import org.simple.clinic.patient.businessid.BusinessId
 import org.simple.clinic.summary.OpenIntention.LinkIdWithPatient
 import org.simple.clinic.summary.OpenIntention.ViewExistingPatient
 import org.simple.clinic.summary.OpenIntention.ViewNewPatient
+import org.simple.clinic.util.Just
 import org.simple.clinic.util.None
 import org.simple.clinic.util.Optional
 import org.simple.clinic.util.exhaustive
-import org.simple.clinic.util.filterAndUnwrapJust
 import org.simple.clinic.widgets.UiEvent
 import org.threeten.bp.Instant
 import java.util.UUID
@@ -54,12 +54,12 @@ class PatientSummaryScreenController @Inject constructor(
     private val bloodPressureCountProvider: Function1<UUID, Int>,
     private val bloodPressuresProvider: Function1<UUID, Observable<List<BloodPressureMeasurement>>>,
     private val patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>,
-    private val patientPhoneNumberProvider: Function1<UUID, Observable<Optional<PatientPhoneNumber>>>,
+    private val fetchPatientPhoneNumber: Function1<UUID, Optional<PatientPhoneNumber>>,
     private val patientBpPassportProvider: Function1<UUID, Observable<Optional<BusinessId>>>,
     private val patientAddressProvider: Function1<UUID, Observable<PatientAddress>>,
     private val patientProvider: Function1<UUID, Observable<Patient>>,
     private val markReminderAsShownEffect: Function1<UUID, Result<Unit>>,
-    private val updateMedicalHistoryEffect2: Function1<MedicalHistory, Result<Unit>>
+    private val updateMedicalHistoryEffect: Function1<MedicalHistory, Result<Unit>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -95,11 +95,11 @@ class PatientSummaryScreenController @Inject constructor(
   }
 
   private fun populatePatientProfile(events: Observable<UiEvent>): Observable<UiChange> {
-    val patientUuid = events
+    val patientUuidStream = events
         .ofType<PatientSummaryScreenCreated>()
         .map { it.patientUuid }
 
-    val sharedPatients = patientUuid
+    val sharedPatients = patientUuidStream
         .flatMap(patientProvider::call)
         .replay(1)
         .refCount()
@@ -108,12 +108,17 @@ class PatientSummaryScreenController @Inject constructor(
         .map { it.addressUuid }
         .flatMap(patientAddressProvider::call)
 
-    val phoneNumbers = patientUuid.flatMap(patientPhoneNumberProvider::call)
-
-    val bpPassport = patientUuid.flatMap(patientBpPassportProvider::call)
+    val bpPassports = patientUuidStream.flatMap(patientBpPassportProvider::call)
 
     return Observables
-        .combineLatest(sharedPatients, addresses, phoneNumbers, bpPassport, ::PatientSummaryProfile)
+        .combineLatest(sharedPatients, addresses, bpPassports) { patient, address, bpPassport ->
+          PatientSummaryProfile(
+              patient = patient,
+              address = address,
+              phoneNumber = patientUuidStream.map(fetchPatientPhoneNumber::call).blockingFirst(),
+              bpPassport = bpPassport
+          )
+        }
         .map { patientSummaryProfile -> { ui: Ui -> showPatientSummaryProfile(ui, patientSummaryProfile) } }
   }
 
@@ -184,7 +189,7 @@ class PatientSummaryScreenController @Inject constructor(
         .map { (toggleEvent, medicalHistory) ->
           updateHistory(medicalHistory, toggleEvent.question, toggleEvent.answer)
         }
-        .map(updateMedicalHistoryEffect2::call)
+        .map(updateMedicalHistoryEffect::call)
         .flatMap { Observable.never<UiChange>() }
   }
 
@@ -367,30 +372,29 @@ class PatientSummaryScreenController @Inject constructor(
         .combineLatest(screenCreations, waitTillABpIsRecorded) { screenCreated, _ -> screenCreated }
         .filter { it.openIntention != ViewNewPatient }
         .map { it.patientUuid }
-        .switchMap { patientUuid ->
-          isMissingPhoneAndShouldBeReminded(patientUuid)
-              .take(1)
-              .filter { missing -> missing }
-              .map { markReminderAsShownEffect.call(patientUuid) }
-              .flatMap { Observable.just { ui: Ui -> ui.showAddPhoneDialog(patientUuid) } }
-        }
+        .filter(::isMissingPhoneAndShouldBeReminded)
+        .doOnNext { markReminderAsShownEffect.call(it) }
+        .flatMap { patientUuid -> Observable.just { ui: Ui -> ui.showAddPhoneDialog(patientUuid) } }
 
     return showForInvalidPhone.mergeWith(showForMissingPhone)
   }
 
   private fun hasInvalidPhone(patientUuid: UUID): Observable<Boolean> {
-    return patientPhoneNumberProvider.call(patientUuid)
-        .filterAndUnwrapJust()
-        .zipWith(lastCancelledAppointmentWithInvalidPhone(patientUuid))
-        .map { (number, appointment) -> appointment.updatedAt > number.updatedAt }
+    val phoneNumber = fetchPatientPhoneNumber.call(patientUuid)
+
+    return if (phoneNumber is Just) {
+      lastCancelledAppointmentWithInvalidPhone(patientUuid)
+          .map { appointment -> appointment.updatedAt > phoneNumber.value.updatedAt }
+    } else {
+      Observable.never<Boolean>()
+    }
   }
 
-  private fun isMissingPhoneAndShouldBeReminded(patientUuid: UUID): Observable<Boolean> {
-    return patientPhoneNumberProvider.call(patientUuid)
-        .map { number ->
-          val reminderShown = hasShownMissingPhoneReminder.call(patientUuid)
-          number is None && reminderShown.not()
-        }
+  private fun isMissingPhoneAndShouldBeReminded(patientUuid: UUID): Boolean {
+    val phoneNumber = fetchPatientPhoneNumber.call(patientUuid)
+    val reminderShown = hasShownMissingPhoneReminder.call(patientUuid)
+
+    return phoneNumber is None && reminderShown.not()
   }
 
   private fun lastCancelledAppointmentWithInvalidPhone(patientUuid: UUID): Observable<Appointment> {

@@ -705,12 +705,12 @@ class PatientSummaryScreenControllerTest {
         bloodPressureCountProvider = Function1 { bpCount },
         bloodPressuresProvider = Function1 { Observable.just(bps) },
         patientDataChangedSinceProvider = Function2 { _, _ -> hasPatientDataChanged },
-        patientPhoneNumberProvider = Function1 { Observable.just(patientPhoneNumber.toOptional()) },
+        fetchPatientPhoneNumber = Function1 { patientPhoneNumber.toOptional() },
         patientBpPassportProvider = Function1 { Observable.just(patientBpPassport.toOptional()) },
         patientAddressProvider = Function1 { Observable.just(patientAddress) },
         patientProvider = Function1 { Observable.just(patient) },
         markReminderAsShownEffect = markReminderAsShownEffect,
-        updateMedicalHistoryEffect2 = updateMedicalHistoryEffect
+        updateMedicalHistoryEffect = updateMedicalHistoryEffect
     )
 
     controllerSubscription = uiEvents
