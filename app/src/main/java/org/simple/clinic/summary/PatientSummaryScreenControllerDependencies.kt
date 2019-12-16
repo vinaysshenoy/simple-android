@@ -38,8 +38,8 @@ class PatientSummaryScreenControllerDependencies {
   }
 
   @Provides
-  fun bindLastCreatedAppointmentProvider(repository: AppointmentRepository): Function1<UUID, Observable<Appointment>> {
-    return Function1 { repository.lastCreatedAppointmentForPatient(it).filterAndUnwrapJust() }
+  fun bindFetchLastCreatedAppointment(repository: AppointmentRepository): Function1<UUID, Optional<Appointment>> {
+    return Function1 { repository.lastCreatedAppointmentForPatient(it).blockingFirst() }
   }
 
   @Provides

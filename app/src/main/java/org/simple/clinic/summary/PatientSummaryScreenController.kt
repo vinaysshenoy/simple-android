@@ -35,10 +35,11 @@ import org.simple.clinic.patient.businessid.BusinessId
 import org.simple.clinic.summary.OpenIntention.LinkIdWithPatient
 import org.simple.clinic.summary.OpenIntention.ViewExistingPatient
 import org.simple.clinic.summary.OpenIntention.ViewNewPatient
-import org.simple.clinic.util.Just
 import org.simple.clinic.util.None
 import org.simple.clinic.util.Optional
 import org.simple.clinic.util.exhaustive
+import org.simple.clinic.util.filterTrue
+import org.simple.clinic.util.zipWith
 import org.simple.clinic.widgets.UiEvent
 import org.threeten.bp.Instant
 import java.util.UUID
@@ -51,7 +52,7 @@ class PatientSummaryScreenController @AssistedInject constructor(
     @Assisted private val openIntention: OpenIntention,
     @Assisted private val screenCreatedTimestamp: Instant,
     private val hasShownMissingPhoneReminder: Function1<UUID, Boolean>,
-    private val lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>,
+    private val fetchLastCreatedAppointment: Function1<UUID, Optional<Appointment>>,
     private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
     private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
     private val bloodPressureCountProvider: Function1<UUID, Int>,
@@ -308,9 +309,9 @@ class PatientSummaryScreenController @AssistedInject constructor(
   }
 
   private fun showUpdatePhoneDialogIfRequired(events: Observable<UiEvent>): Observable<UiChange> {
-    val showForInvalidPhone = hasInvalidPhone()
+    val showForInvalidPhone = Observable.fromCallable { hasInvalidPhone() }
         .take(1)
-        .filter { invalid -> invalid }
+        .filterTrue()
         .map { { ui: Ui -> ui.showUpdatePhoneDialog(patientUuid) } }
 
     val waitTillABpIsRecorded = events
@@ -329,15 +330,20 @@ class PatientSummaryScreenController @AssistedInject constructor(
     return showForInvalidPhone.mergeWith(showForMissingPhone)
   }
 
-  private fun hasInvalidPhone(): Observable<Boolean> {
-    val phoneNumber = fetchPatientPhoneNumber.call(patientUuid)
+  private fun hasInvalidPhone(): Boolean {
+    val phoneNumberOptional = fetchPatientPhoneNumber.call(patientUuid)
+    val appointmentOptional = fetchLastCreatedAppointment.call(patientUuid)
 
-    return if (phoneNumber is Just) {
-      lastCancelledAppointmentWithInvalidPhone(patientUuid)
-          .map { appointment -> appointment.updatedAt > phoneNumber.value.updatedAt }
-    } else {
-      Observable.never<Boolean>()
-    }
+    return phoneNumberOptional.zipWith(
+        other = appointmentOptional,
+        zipper = { phoneNumber, appointment ->
+          val wasAppointmentCancelledForInvalidPhone = appointment.status == Cancelled && appointment.cancelReason == InvalidPhoneNumber
+          val hasPhoneNumberBeenUpdatedAfterAppointment = appointment.updatedAt > phoneNumber.updatedAt
+
+          wasAppointmentCancelledForInvalidPhone && hasPhoneNumberBeenUpdatedAfterAppointment
+        },
+        fallback = { _, _ -> false }
+    )
   }
 
   private fun isMissingPhoneAndShouldBeReminded(): Boolean {
@@ -345,11 +351,6 @@ class PatientSummaryScreenController @AssistedInject constructor(
     val reminderShown = hasShownMissingPhoneReminder.call(patientUuid)
 
     return phoneNumber is None && reminderShown.not()
-  }
-
-  private fun lastCancelledAppointmentWithInvalidPhone(patientUuid: UUID): Observable<Appointment> {
-    return lastCreatedAppointmentProvider.call(patientUuid)
-        .filter { it.status == Cancelled && it.cancelReason == InvalidPhoneNumber }
   }
 
   private fun exitScreenIfLinkIdWithPatientIsCancelled(events: Observable<UiEvent>): Observable<UiChange> {

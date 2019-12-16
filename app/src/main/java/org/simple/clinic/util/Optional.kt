@@ -87,3 +87,27 @@ object None : Optional<Nothing>() {
  * using the static [Optional.toOptional] method.
  */
 fun <T : Any> T?.toOptional(): Optional<T> = if (this == null) None else Just(this)
+
+inline fun <T : Any, U : Any, V> Optional<T>.zipWith(
+    other: Optional<U>,
+    zipper: (T, U) -> V,
+    fallback: (Optional<T>, Optional<U>) -> V
+): V {
+  return if (this is Just && other is Just) zipper(this.value, other.value) else fallback(this, other)
+}
+
+inline fun <T : Any, U : Any, V> Optional<T>.zipWith(
+    other: Optional<U>,
+    zipper: (T, U) -> V
+): V {
+  return this.zipWith(other, zipper) { _, _ ->
+    val message = when {
+      this is None && other is None -> "Both [self] and [other] are None"
+      this is None -> "[self] is None"
+      else -> "[other] is None"
+    }
+    throw IllegalStateException(message)
+  }
+}
+
+fun <T : Any, U : Any> Optional<T>.zipWith(other: Optional<U>): Pair<T, U> = this.zipWith(other) { first, second -> first to second }

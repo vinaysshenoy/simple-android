@@ -646,7 +646,7 @@ class PatientSummaryScreenControllerTest {
         openIntention = openIntention,
         screenCreatedTimestamp = screenCreatedTimestamp,
         hasShownMissingPhoneReminder = Function1 { hasShownMissingPhoneReminder },
-        lastCreatedAppointmentProvider = Function1 { if (lastCreatedAppointment == null) Observable.never() else Observable.just(lastCreatedAppointment) },
+        fetchLastCreatedAppointment = Function1 { lastCreatedAppointment.toOptional() },
         medicalHistoryProvider = Function1 { Observable.just(medicalHistory) },
         patientPrescriptionProvider = Function1 { Observable.just(prescription) },
         bloodPressureCountProvider = Function1 { bpCount },
