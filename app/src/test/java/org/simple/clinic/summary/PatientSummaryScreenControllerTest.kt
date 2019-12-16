@@ -647,7 +647,7 @@ class PatientSummaryScreenControllerTest {
         screenCreatedTimestamp = screenCreatedTimestamp,
         hasShownMissingPhoneReminder = Function1 { hasShownMissingPhoneReminder },
         fetchLastCreatedAppointment = Function1 { lastCreatedAppointment.toOptional() },
-        medicalHistoryProvider = Function1 { Observable.just(medicalHistory) },
+        fetchMedicalHistory = Function1 { medicalHistory },
         patientPrescriptionProvider = Function1 { Observable.just(prescription) },
         bloodPressureCountProvider = Function1 { bpCount },
         bloodPressuresProvider = Function1 { Observable.just(bps) },

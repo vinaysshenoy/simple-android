@@ -53,7 +53,7 @@ class PatientSummaryScreenController @AssistedInject constructor(
     @Assisted private val screenCreatedTimestamp: Instant,
     private val hasShownMissingPhoneReminder: Function1<UUID, Boolean>,
     private val fetchLastCreatedAppointment: Function1<UUID, Optional<Appointment>>,
-    private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
+    private val fetchMedicalHistory: Function1<UUID, MedicalHistory>,
     private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
     private val bloodPressureCountProvider: Function1<UUID, Int>,
     private val bloodPressuresProvider: Function1<UUID, Observable<List<BloodPressureMeasurement>>>,
@@ -137,16 +137,15 @@ class PatientSummaryScreenController @AssistedInject constructor(
     return ObservableTransformer { events ->
       val prescribedDrugsStream = patientPrescriptionProvider.call(patientUuid)
       val bloodPressures = bloodPressuresProvider.call(patientUuid)
-      val medicalHistoryItems = medicalHistoryProvider.call(patientUuid)
 
       // combineLatest() is important here so that the first data-set for the list
       // is dispatched in one go instead of them appearing one after another on the UI.
       val summaryItemChanges = Observables
-          .combineLatest(prescribedDrugsStream, bloodPressures, medicalHistoryItems) { prescribedDrugs, bloodPressureMeasurements, history ->
+          .combineLatest(prescribedDrugsStream, bloodPressures) { prescribedDrugs, bloodPressureMeasurements ->
             PatientSummaryItemChanged(PatientSummaryItems(
                 prescription = prescribedDrugs,
                 bloodPressures = bloodPressureMeasurements,
-                medicalHistory = history
+                medicalHistory = fetchMedicalHistory.call(patientUuid)
             ))
           }
           .distinctUntilChanged()
@@ -165,24 +164,20 @@ class PatientSummaryScreenController @AssistedInject constructor(
   }
 
   private fun updateMedicalHistory(events: Observable<UiEvent>): Observable<UiChange> {
-    val medicalHistories = medicalHistoryProvider.call(patientUuid)
-
-    val updateHistory = { medicalHistory: MedicalHistory, question: MedicalHistoryQuestion, answer: Answer ->
+    val updateMedicalHistory = { question: MedicalHistoryQuestion, answer: Answer ->
+      val currentMedicalHistory = fetchMedicalHistory.call(patientUuid)
       when (question) {
-        DIAGNOSED_WITH_HYPERTENSION -> medicalHistory.copy(diagnosedWithHypertension = answer)
-        IS_ON_TREATMENT_FOR_HYPERTENSION -> medicalHistory.copy(isOnTreatmentForHypertension = answer)
-        HAS_HAD_A_HEART_ATTACK -> medicalHistory.copy(hasHadHeartAttack = answer)
-        HAS_HAD_A_STROKE -> medicalHistory.copy(hasHadStroke = answer)
-        HAS_HAD_A_KIDNEY_DISEASE -> medicalHistory.copy(hasHadKidneyDisease = answer)
-        HAS_DIABETES -> medicalHistory.copy(hasDiabetes = answer)
+        DIAGNOSED_WITH_HYPERTENSION -> currentMedicalHistory.copy(diagnosedWithHypertension = answer)
+        IS_ON_TREATMENT_FOR_HYPERTENSION -> currentMedicalHistory.copy(isOnTreatmentForHypertension = answer)
+        HAS_HAD_A_HEART_ATTACK -> currentMedicalHistory.copy(hasHadHeartAttack = answer)
+        HAS_HAD_A_STROKE -> currentMedicalHistory.copy(hasHadStroke = answer)
+        HAS_HAD_A_KIDNEY_DISEASE -> currentMedicalHistory.copy(hasHadKidneyDisease = answer)
+        HAS_DIABETES -> currentMedicalHistory.copy(hasDiabetes = answer)
       }
     }
 
     return events.ofType<SummaryMedicalHistoryAnswerToggled>()
-        .withLatestFrom(medicalHistories)
-        .map { (toggleEvent, medicalHistory) ->
-          updateHistory(medicalHistory, toggleEvent.question, toggleEvent.answer)
-        }
+        .map { toggleEvent -> updateMedicalHistory(toggleEvent.question, toggleEvent.answer) }
         .map(updateMedicalHistoryEffect::call)
         .flatMap { Observable.never<UiChange>() }
   }
