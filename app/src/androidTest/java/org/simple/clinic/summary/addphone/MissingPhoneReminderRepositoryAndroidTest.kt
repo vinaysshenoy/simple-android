@@ -6,6 +6,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.simple.clinic.TestClinicApp
+import org.simple.clinic.util.ResultSubject
 import org.simple.clinic.util.UtcClock
 import org.threeten.bp.Instant
 import java.util.UUID
@@ -36,7 +37,7 @@ class MissingPhoneReminderRepositoryAndroidTest {
     val result = repository.markReminderAsShownFor2(patientUuid)
 
     val savedReminder = dao.get(patientUuid).blockingFirst().first()
-    assertThat(result.isSuccess).isTrue()
+    ResultSubject.assertThat(result).isSuccess()
     assertThat(savedReminder).isEqualTo(MissingPhoneReminder(patientUuid, remindedAt))
   }
 
@@ -52,7 +53,7 @@ class MissingPhoneReminderRepositoryAndroidTest {
     val result = repository.markReminderAsShownFor2(patientUuid)
 
     val hasASavedReminder = repository.hasShownReminderFor(patientUuid).blockingGet()
-    assertThat(result.isSuccess).isTrue()
+    ResultSubject.assertThat(result).isSuccess()
     assertThat(hasASavedReminder).isTrue()
   }
 }
