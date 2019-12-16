@@ -383,29 +383,38 @@ class PatientSummaryScreenControllerTest {
     val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
     setupController(openIntention, markReminderAsShownEffect = markReminderAsShown)
 
-    verify(ui, never()).showAddPhoneDialog(patientUuid)
-    markReminderAsShown.invocations.assertNeverCalled()
-  }
-
-  @Test
-  @Parameters(method = "patient summary open intentions except new patient")
-  fun `when a new patient has a phone number, then add phone dialog should not be shown`(openIntention: OpenIntention) {
-    val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
-    setupController(openIntention, markReminderAsShownEffect = markReminderAsShown)
+    uiEvents.onNext(PatientSummaryBloodPressureSaved)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
     markReminderAsShown.invocations.assertNeverCalled()
   }
 
   @Test
-  @Parameters(method = "patient summary open intentions except new patient")
-  fun `when a new patient is missing a phone number, then add phone dialog should not be shown`(openIntention: OpenIntention) {
+  fun `when a new patient has a phone number, then add phone dialog should not be shown`() {
     val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
     setupController(
-        openIntention,
-        patientPhoneNumber = null,
-        markReminderAsShownEffect = markReminderAsShown
+        openIntention = OpenIntention.ViewNewPatient,
+        markReminderAsShownEffect = markReminderAsShown,
+        hasShownMissingPhoneReminder = false
     )
+
+    uiEvents.onNext(PatientSummaryBloodPressureSaved)
+
+    verify(ui, never()).showAddPhoneDialog(patientUuid)
+    markReminderAsShown.invocations.assertNeverCalled()
+  }
+
+  @Test
+  fun `when a new patient is missing a phone number, then add phone dialog should not be shown`() {
+    val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
+    setupController(
+        OpenIntention.ViewNewPatient,
+        patientPhoneNumber = null,
+        markReminderAsShownEffect = markReminderAsShown,
+        hasShownMissingPhoneReminder = false
+    )
+
+    uiEvents.onNext(PatientSummaryBloodPressureSaved)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
     markReminderAsShown.invocations.assertNeverCalled()
@@ -655,6 +664,6 @@ class PatientSummaryScreenControllerTest {
         .compose(controller)
         .subscribe { uiChange -> uiChange(ui) }
 
-    uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
+    uiEvents.onNext(PatientSummaryScreenCreated)
   }
 }
