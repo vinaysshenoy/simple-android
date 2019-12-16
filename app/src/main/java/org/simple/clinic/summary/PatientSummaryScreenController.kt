@@ -61,7 +61,7 @@ class PatientSummaryScreenController @AssistedInject constructor(
     private val fetchPatientPhoneNumber: Function1<UUID, Optional<PatientPhoneNumber>>,
     private val fetchBpPassport: Function1<UUID, Optional<BusinessId>>,
     private val patientAddressProvider: Function1<UUID, Observable<PatientAddress>>,
-    private val patientProvider: Function1<UUID, Observable<Patient>>,
+    private val fetchPatient: Function1<UUID, Patient>,
     private val markReminderAsShownEffect: Function1<UUID, Result<Unit>>,
     private val updateMedicalHistoryEffect: Function1<MedicalHistory, Result<Unit>>
 ) : ObservableTransformer<UiEvent, UiChange> {
@@ -104,18 +104,16 @@ class PatientSummaryScreenController @AssistedInject constructor(
   }
 
   private fun populatePatientProfile(): Observable<UiChange> {
-    val sharedPatients = patientProvider.call(patientUuid)
-        .replay(1)
-        .refCount()
+    val sharedPatients = Observable.fromCallable { fetchPatient.call(patientUuid) }
 
     val addresses = sharedPatients
         .map { it.addressUuid }
         .flatMap(patientAddressProvider::call)
 
-    return Observables
-        .combineLatest(sharedPatients, addresses) { patient, address ->
+    return addresses
+        .map { address ->
           PatientSummaryProfile(
-              patient = patient,
+              patient = fetchPatient.call(patientUuid),
               address = address,
               phoneNumber = fetchPatientPhoneNumber.call(patientUuid),
               bpPassport = fetchBpPassport.call(patientUuid)

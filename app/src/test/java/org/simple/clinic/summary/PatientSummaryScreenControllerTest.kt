@@ -655,7 +655,7 @@ class PatientSummaryScreenControllerTest {
         fetchPatientPhoneNumber = Function1 { patientPhoneNumber.toOptional() },
         fetchBpPassport = Function1 { patientBpPassport.toOptional() },
         patientAddressProvider = Function1 { Observable.just(patientAddress) },
-        patientProvider = Function1 { Observable.just(patient) },
+        fetchPatient = Function1 { patient },
         markReminderAsShownEffect = markReminderAsShownEffect,
         updateMedicalHistoryEffect = updateMedicalHistoryEffect
     )

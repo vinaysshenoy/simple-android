@@ -91,7 +91,7 @@ class PatientSummaryScreenControllerDependencies {
   }
 
   @Provides
-  fun bindPatientProvider(repository: PatientRepository): Function1<UUID, Observable<Patient>> {
-    return Function1 { repository.patient(it).filterAndUnwrapJust() }
+  fun bindFetchPatient(repository: PatientRepository): Function1<UUID, Patient> {
+    return Function1 { repository.patient(it).filterAndUnwrapJust().blockingFirst() }
   }
 }
