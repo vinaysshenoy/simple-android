@@ -1,6 +1,5 @@
 package org.simple.clinic.summary
 
-import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.ObservableSource
 import io.reactivex.ObservableTransformer
@@ -51,7 +50,6 @@ typealias UiChange = (Ui) -> Unit
 class PatientSummaryScreenController @Inject constructor(
     private val hasShownMissingPhoneReminderProvider: Function1<UUID, Observable<Boolean>>,
     private val lastCreatedAppointmentProvider: Function1<UUID, Observable<Appointment>>,
-    private val updateMedicalHistory: Function2<MedicalHistory, Instant, Completable>,
     private val utcTimestampProvider: Function0<Instant>,
     private val medicalHistoryProvider: Function1<UUID, Observable<MedicalHistory>>,
     private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
@@ -62,7 +60,8 @@ class PatientSummaryScreenController @Inject constructor(
     private val patientBpPassportProvider: Function1<UUID, Observable<Optional<BusinessId>>>,
     private val patientAddressProvider: Function1<UUID, Observable<PatientAddress>>,
     private val patientProvider: Function1<UUID, Observable<Patient>>,
-    private val markReminderAsShownEffect: Function1<UUID, Result<Unit>>
+    private val markReminderAsShownEffect: Function1<UUID, Result<Unit>>,
+    private val updateMedicalHistoryEffect: Function2<MedicalHistory, Instant, Result<Unit>>
 ) : ObservableTransformer<UiEvent, UiChange> {
 
   override fun apply(events: Observable<UiEvent>): ObservableSource<UiChange> {
@@ -187,11 +186,8 @@ class PatientSummaryScreenController @Inject constructor(
         .map { (toggleEvent, medicalHistory) ->
           updateHistory(medicalHistory, toggleEvent.question, toggleEvent.answer)
         }
-        .flatMap { medicalHistory ->
-          updateMedicalHistory
-              .call(medicalHistory, utcTimestampProvider.call())
-              .andThen(Observable.never<UiChange>())
-        }
+        .map { medicalHistory -> updateMedicalHistoryEffect.call(medicalHistory, utcTimestampProvider.call()) }
+        .flatMap { Observable.never<UiChange>() }
   }
 
   private fun openBloodPressureBottomSheet(events: Observable<UiEvent>): Observable<UiChange> {

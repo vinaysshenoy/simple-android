@@ -46,8 +46,15 @@ class PatientSummaryScreenControllerDependencies {
   }
 
   @Provides
-  fun bindUpdateMedicalHistory(repository: MedicalHistoryRepository): Function2<MedicalHistory, Instant, Completable> {
-    return Function2 { medicalHistory, updatedTime -> repository.save(medicalHistory, updatedTime) }
+  fun bindUpdateMedicalHistoryEffect(repository: MedicalHistoryRepository): Function2<MedicalHistory, Instant, Result<Unit>> {
+    return Function2 { medicalHistory, updatedTime ->
+      try {
+        repository.save(medicalHistory, updatedTime).blockingAwait()
+        Result.success(Unit)
+      } catch (e: Throwable) {
+        Result.failure(e)
+      }
+    }
   }
 
   @Provides

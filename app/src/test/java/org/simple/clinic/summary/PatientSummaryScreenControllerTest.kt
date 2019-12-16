@@ -5,7 +5,6 @@ import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.never
 import com.nhaarman.mockito_kotlin.verify
-import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
 import io.reactivex.subjects.PublishSubject
@@ -214,12 +213,12 @@ class PatientSummaryScreenControllerTest {
         updatedAt = Instant.now(utcClock))
 
     val now = Instant.now(utcClock)
-    val updateMedicalHistory = MockFunctions.function2<MedicalHistory, Instant, Completable>(Completable.complete())
+    val updateMedicalHistory = MockFunctions.function2<MedicalHistory, Instant, Result<Unit>>(success(Unit))
 
     setupControllerWithScreenCreated(
         openIntention,
-        updateMedicalHistory = updateMedicalHistory,
-        medicalHistory = medicalHistory
+        medicalHistory = medicalHistory,
+        updateMedicalHistoryEffect = updateMedicalHistory
     )
 
     uiEvents.onNext(SummaryMedicalHistoryAnswerToggled(question, answer = newAnswer))
@@ -347,8 +346,8 @@ class PatientSummaryScreenControllerTest {
     setupControllerWithScreenCreated(
         openIntention,
         hasShownMissingPhoneReminder = false,
-        markReminderAsShownEffect = markReminderAsShown,
-        patientPhoneNumber = null
+        patientPhoneNumber = null,
+        markReminderAsShownEffect = markReminderAsShown
     )
     uiEvents.onNext(PatientSummaryBloodPressureSaved)
 
@@ -362,7 +361,7 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention
   ) {
     val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
-    setupControllerWithScreenCreated(openIntention, markReminderAsShownEffect = markReminderAsShown, patientPhoneNumber = null)
+    setupControllerWithScreenCreated(openIntention, patientPhoneNumber = null, markReminderAsShownEffect = markReminderAsShown)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
     markReminderAsShown.invocations.assertNeverCalled()
@@ -374,7 +373,7 @@ class PatientSummaryScreenControllerTest {
       openIntention: OpenIntention
   ) {
     val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
-    setupControllerWithScreenCreated(openIntention, markReminderAsShownEffect = markReminderAsShown, patientPhoneNumber = null)
+    setupControllerWithScreenCreated(openIntention, patientPhoneNumber = null, markReminderAsShownEffect = markReminderAsShown)
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
     markReminderAsShown.invocations.assertNeverCalled()
@@ -406,8 +405,8 @@ class PatientSummaryScreenControllerTest {
     val markReminderAsShown = MockFunctions.function1<UUID, Result<Unit>>(success(Unit))
     setupControllerWithScreenCreated(
         openIntention,
-        markReminderAsShownEffect = markReminderAsShown,
-        patientPhoneNumber = null
+        patientPhoneNumber = null,
+        markReminderAsShownEffect = markReminderAsShown
     )
 
     verify(ui, never()).showAddPhoneDialog(patientUuid)
@@ -623,7 +622,6 @@ class PatientSummaryScreenControllerTest {
       screenCreatedTimestamp: Instant = Instant.now(utcClock),
       hasShownMissingPhoneReminder: Boolean = true,
       lastCreatedAppointment: Appointment? = null,
-      updateMedicalHistory: Function2<MedicalHistory, Instant, Completable> = Function2 { _, _ -> Completable.complete() },
       medicalHistory: MedicalHistory = this.medicalHistory,
       prescription: List<PrescribedDrug> = emptyList(),
       bpCount: Int = 0,
@@ -633,12 +631,12 @@ class PatientSummaryScreenControllerTest {
       patientBpPassport: BusinessId? = this.bpPassport,
       patientAddress: PatientAddress = this.patientAddress,
       patient: Patient = this.patient,
-      markReminderAsShownEffect: Function1<UUID, Result<Unit>> = Function1 { success(Unit) }
+      markReminderAsShownEffect: Function1<UUID, Result<Unit>> = Function1 { success(Unit) },
+      updateMedicalHistoryEffect: Function2<MedicalHistory, Instant, Result<Unit>> = Function2 { _, _ -> success(Unit) }
   ) {
     setupControllerWithoutScreenCreated(
         hasShownMissingPhoneReminder = hasShownMissingPhoneReminder,
         lastCreatedAppointment = lastCreatedAppointment,
-        updateMedicalHistory = updateMedicalHistory,
         medicalHistory = medicalHistory,
         prescription = prescription,
         bpCount = bpCount,
@@ -648,7 +646,8 @@ class PatientSummaryScreenControllerTest {
         patientBpPassport = patientBpPassport,
         patientAddress = patientAddress,
         patient = patient,
-        markReminderAsShownEffect = markReminderAsShownEffect
+        markReminderAsShownEffect = markReminderAsShownEffect,
+        updateMedicalHistoryEffect = updateMedicalHistoryEffect
     )
     uiEvents.onNext(PatientSummaryScreenCreated(patientUuid, openIntention, screenCreatedTimestamp))
   }
@@ -656,7 +655,6 @@ class PatientSummaryScreenControllerTest {
   private fun setupControllerWithoutScreenCreated(
       hasShownMissingPhoneReminder: Boolean = true,
       lastCreatedAppointment: Appointment? = null,
-      updateMedicalHistory: Function2<MedicalHistory, Instant, Completable> = Function2 { _, _ -> Completable.complete() },
       medicalHistory: MedicalHistory = this.medicalHistory,
       prescription: List<PrescribedDrug> = emptyList(),
       bpCount: Int = 0,
@@ -666,12 +664,12 @@ class PatientSummaryScreenControllerTest {
       patientBpPassport: BusinessId? = this.bpPassport,
       patientAddress: PatientAddress = this.patientAddress,
       patient: Patient = this.patient,
-      markReminderAsShownEffect: Function1<UUID, Result<Unit>> = Function1 { success(Unit) }
+      markReminderAsShownEffect: Function1<UUID, Result<Unit>> = Function1 { success(Unit) },
+      updateMedicalHistoryEffect: Function2<MedicalHistory, Instant, Result<Unit>> = Function2 { _, _ -> success(Unit) }
   ) {
     createController(
         hasShownMissingPhoneReminder = hasShownMissingPhoneReminder,
         lastCreatedAppointment = lastCreatedAppointment,
-        updateMedicalHistory = updateMedicalHistory,
         medicalHistory = medicalHistory,
         prescription = prescription,
         bpCount = bpCount,
@@ -681,14 +679,14 @@ class PatientSummaryScreenControllerTest {
         patientBpPassport = patientBpPassport,
         patientAddress = patientAddress,
         patient = patient,
-        markReminderAsShownEffect = markReminderAsShownEffect
+        markReminderAsShownEffect = markReminderAsShownEffect,
+        updateMedicalHistoryEffect = updateMedicalHistoryEffect
     )
   }
 
   private fun createController(
       hasShownMissingPhoneReminder: Boolean,
       lastCreatedAppointment: Appointment?,
-      updateMedicalHistory: Function2<MedicalHistory, Instant, Completable>,
       medicalHistory: MedicalHistory,
       prescription: List<PrescribedDrug>,
       bpCount: Int,
@@ -698,12 +696,12 @@ class PatientSummaryScreenControllerTest {
       patientBpPassport: BusinessId?,
       patientAddress: PatientAddress,
       patient: Patient,
-      markReminderAsShownEffect: Function1<UUID, Result<Unit>>
+      markReminderAsShownEffect: Function1<UUID, Result<Unit>>,
+      updateMedicalHistoryEffect: Function2<MedicalHistory, Instant, Result<Unit>>
   ) {
     val controller = PatientSummaryScreenController(
         hasShownMissingPhoneReminderProvider = Function1 { Observable.just(hasShownMissingPhoneReminder) },
         lastCreatedAppointmentProvider = Function1 { if (lastCreatedAppointment == null) Observable.never() else Observable.just(lastCreatedAppointment) },
-        updateMedicalHistory = updateMedicalHistory,
         utcTimestampProvider = Function0 { Instant.now(utcClock) },
         medicalHistoryProvider = Function1 { Observable.just(medicalHistory) },
         patientPrescriptionProvider = Function1 { Observable.just(prescription) },
@@ -714,7 +712,8 @@ class PatientSummaryScreenControllerTest {
         patientBpPassportProvider = Function1 { Observable.just(patientBpPassport.toOptional()) },
         patientAddressProvider = Function1 { Observable.just(patientAddress) },
         patientProvider = Function1 { Observable.just(patient) },
-        markReminderAsShownEffect = markReminderAsShownEffect
+        markReminderAsShownEffect = markReminderAsShownEffect,
+        updateMedicalHistoryEffect = updateMedicalHistoryEffect
     )
 
     controllerSubscription = uiEvents
