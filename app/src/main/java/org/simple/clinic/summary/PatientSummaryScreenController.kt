@@ -51,17 +51,17 @@ class PatientSummaryScreenController @AssistedInject constructor(
     @Assisted private val patientUuid: UUID,
     @Assisted private val openIntention: OpenIntention,
     @Assisted private val screenCreatedTimestamp: Instant,
-    private val hasShownMissingPhoneReminder: Function1<UUID, Boolean>,
-    private val fetchLastCreatedAppointment: Function1<UUID, Optional<Appointment>>,
-    private val fetchMedicalHistory: Function1<UUID, MedicalHistory>,
-    private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
-    private val bloodPressureCountProvider: Function1<UUID, Int>,
-    private val bloodPressuresProvider: Function1<UUID, Observable<List<BloodPressureMeasurement>>>,
-    private val patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>,
+    private val fetchPatient: Function1<UUID, Patient>,
+    private val fetchPatientAddress: Function1<UUID, PatientAddress>,
     private val fetchPatientPhoneNumber: Function1<UUID, Optional<PatientPhoneNumber>>,
     private val fetchBpPassport: Function1<UUID, Optional<BusinessId>>,
-    private val fetchPatientAddress: Function1<UUID, PatientAddress>,
-    private val fetchPatient: Function1<UUID, Patient>,
+    private val patientPrescriptionProvider: Function1<UUID, Observable<List<PrescribedDrug>>>,
+    private val bloodPressuresProvider: Function1<UUID, Observable<List<BloodPressureMeasurement>>>,
+    private val fetchMedicalHistory: Function1<UUID, MedicalHistory>,
+    private val hasShownMissingPhoneReminder: Function1<UUID, Boolean>,
+    private val fetchLastCreatedAppointment: Function1<UUID, Optional<Appointment>>,
+    private val bloodPressureCountProvider: Function1<UUID, Int>,
+    private val patientDataChangedSinceProvider: Function2<UUID, Instant, Boolean>,
     private val markReminderAsShownEffect: Function1<UUID, Result<Unit>>,
     private val updateMedicalHistoryEffect: Function1<MedicalHistory, Result<Unit>>
 ) : ObservableTransformer<UiEvent, UiChange> {
@@ -297,7 +297,8 @@ class PatientSummaryScreenController @AssistedInject constructor(
   }
 
   private fun showUpdatePhoneDialogIfRequired(events: Observable<UiEvent>): Observable<UiChange> {
-    val showForInvalidPhone = Observable.fromCallable { hasInvalidPhone() }
+    val showForInvalidPhone = events.ofType<PatientSummaryScreenCreated>()
+        .map { hasInvalidPhone() }
         .take(1)
         .filterTrue()
         .map { { ui: Ui -> ui.showUpdatePhoneDialog(patientUuid) } }
