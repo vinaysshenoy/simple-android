@@ -8,29 +8,44 @@ import java.util.Locale;
 
 public class InvocationsRecorder {
 
+  private final Locale messageLocale;
+
   private final List<Object[]> invocations = new ArrayList<>();
+
+  public InvocationsRecorder() {
+    this(Locale.ENGLISH);
+  }
+
+  @SuppressWarnings("WeakerAccess")
+  public InvocationsRecorder(Locale messageLocale) {
+    this.messageLocale = messageLocale;
+  }
 
   public void record(Object... parameters) {
     invocations.add(parameters);
   }
 
+  @SuppressWarnings("WeakerAccess")
   public InvocationsRecorder assertNumberOfCalls(int callCount) {
     final int actualNumberOfCalls = invocations.size();
     if (actualNumberOfCalls != callCount) {
-      fail(format("Expected to be invoked [%d] number of times, but was invoked [%d] times", callCount, actualNumberOfCalls));
+      fail(format(messageLocale, "Expected to be invoked [%d] number of times, but was invoked [%d] times", callCount, actualNumberOfCalls));
     }
 
     return this;
   }
 
+  @SuppressWarnings("WeakerAccess")
   public InvocationsRecorder assertCalled() {
     return assertNumberOfCalls(1);
   }
 
+  @SuppressWarnings("WeakerAccess")
   public InvocationsRecorder assertNeverCalled() {
     return assertNumberOfCalls(0);
   }
 
+  @SuppressWarnings("WeakerAccess")
   public InvocationsRecorder assertCall(int callIndex, Object... expectedParameters) {
     assertNumberOfCalls(callIndex + 1);
 
@@ -46,6 +61,7 @@ public class InvocationsRecorder {
     return this;
   }
 
+  @SuppressWarnings("WeakerAccess")
   public InvocationsRecorder assertCalledWithParameters(Object... expectedParameters) {
     return this.assertCall(0, expectedParameters);
   }
@@ -55,13 +71,24 @@ public class InvocationsRecorder {
 
     if (expectedParameter != null && actualParameter != null) {
       if (!expectedParameter.equals(actualParameter)) {
-        message = format("Expected parameter [%s] to be [%s], but was [%s]", parameterName, expectedParameter, actualParameter);
+        message = format(
+            messageLocale,
+            "Expected parameter [%s] to be [%s], but was [%s]",
+            parameterName,
+            expectedParameter,
+            actualParameter
+        );
       }
     } else {
       if (expectedParameter == null && actualParameter != null) {
-        message = format("Expected parameter [%s] to be [null], but it was [%s]", parameterName, actualParameter);
+        message = format(messageLocale, "Expected parameter [%s] to be [null], but it was [%s]", parameterName, actualParameter);
       } else if (expectedParameter != null) {
-        message = format("Expected parameter [%s] to be [%s], but it was [null]", parameterName, expectedParameter);
+        message = format(
+            messageLocale,
+            "Expected parameter [%s] to be [%s], but it was [null]",
+            parameterName,
+            expectedParameter
+        );
       }
     }
 
@@ -76,6 +103,7 @@ public class InvocationsRecorder {
 
     if (numberOfActualParameters != numberOfExpectedParameters) {
       String message = format(
+          messageLocale,
           "Expected call #%d to be invoked with [%d] parameters, but was actually invoked with [%d] parameters",
           callIndex,
           numberOfExpectedParameters,
