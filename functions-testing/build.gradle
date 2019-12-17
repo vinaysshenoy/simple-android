@@ -2,6 +2,8 @@ apply plugin: 'java-library'
 
 dependencies {
   api project(':functions')
+  testImplementation "junit:junit:$versions.junit"
+  testImplementation "com.google.truth:truth:$versions.truth"
 }
 
 sourceCompatibility = "8"

@@ -29,13 +29,13 @@ public class InvocationsRecorder {
   public InvocationsRecorder assertNumberOfCalls(int callCount) {
     final int actualNumberOfCalls = invocations.size();
     if (actualNumberOfCalls != callCount) {
-      fail(format(messageLocale, "Expected to be invoked [%d] number of times, but was invoked [%d] times", callCount, actualNumberOfCalls));
+      fail(format(messageLocale, "Expected to be invoked exactly [%d] number of times, but was invoked [%d] times", callCount, actualNumberOfCalls));
     }
 
     return this;
   }
 
-  @SuppressWarnings("WeakerAccess")
+  @SuppressWarnings({ "WeakerAccess", "unused", "UnusedReturnValue" })
   public InvocationsRecorder assertCalled() {
     return assertNumberOfCalls(1);
   }
@@ -47,7 +47,7 @@ public class InvocationsRecorder {
 
   @SuppressWarnings("WeakerAccess")
   public InvocationsRecorder assertCall(int callIndex, Object... expectedParameters) {
-    assertNumberOfCalls(callIndex + 1);
+    assertCalledAtLeast(callIndex + 1);
 
     Object[] invokedParameters = invocations.get(callIndex);
 
@@ -63,7 +63,19 @@ public class InvocationsRecorder {
 
   @SuppressWarnings("WeakerAccess")
   public InvocationsRecorder assertCalledWithParameters(Object... expectedParameters) {
-    return this.assertCall(0, expectedParameters);
+    assertNumberOfCalls(1);
+    assertCall(0, expectedParameters);
+    return this;
+  }
+
+  @SuppressWarnings({ "WeakerAccess", "UnusedReturnValue" })
+  public InvocationsRecorder assertCalledAtLeast(int callCount) {
+    final int actualNumberOfCalls = invocations.size();
+    if (actualNumberOfCalls < callCount) {
+      fail(format(messageLocale, "Expected to be invoked at least [%d] number of times, but was invoked [%d] times", callCount, actualNumberOfCalls));
+    }
+
+    return this;
   }
 
   private void checkParameters(String parameterName, Object actualParameter, Object expectedParameter) {
