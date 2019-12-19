@@ -15,6 +15,7 @@ import org.simple.clinic.activity.RxActivityLifecycle
 import org.simple.clinic.addidtopatient.searchforpatient.AddIdToPatientSearchScreen
 import org.simple.clinic.addidtopatient.searchresults.AddIdToPatientSearchResultsScreen
 import org.simple.clinic.allpatientsinfacility.AllPatientsInFacilityView
+import org.simple.clinic.bp.entry.BloodPressureEntryEffectHandlerDependencies
 import org.simple.clinic.bp.entry.BloodPressureEntrySheet
 import org.simple.clinic.bp.entry.confirmremovebloodpressure.ConfirmRemoveBloodPressureDialog
 import org.simple.clinic.bp.entry.di.BloodPressureEntryModule
@@ -77,7 +78,10 @@ import org.simple.clinic.widgets.qrcodescanner.QrCodeScannerView
 import org.threeten.bp.Instant
 import javax.inject.Named
 
-@Subcomponent(modules = [TheActivityModule::class])
+@Subcomponent(modules = [
+  TheActivityModule::class,
+  BloodPressureEntryEffectHandlerDependencies::class
+])
 interface TheActivityComponent : OnboardingScreenInjector {
 
   fun inject(target: TheActivity)
