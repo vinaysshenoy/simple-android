@@ -6,7 +6,6 @@ import org.junit.After
 import org.junit.Test
 import org.simple.clinic.mobius.EffectHandlerTestCase
 import org.simple.clinic.util.TestUserClock
-import org.simple.clinic.util.UserInputDatePaddingCharacter
 import org.simple.clinic.util.scheduler.TrampolineSchedulersProvider
 import org.threeten.bp.LocalDate
 import org.threeten.bp.ZoneOffset.UTC
@@ -14,17 +13,15 @@ import org.threeten.bp.ZoneOffset.UTC
 class BloodPressureEntryEffectHandlerTest {
   private val ui = mock<BloodPressureEntryUi>()
   private val userClock = TestUserClock()
-  private val effectHandler = BloodPressureEntryEffectHandler.create(
-      ui,
+  private val effectHandler = BloodPressureEntryEffectHandler(ui,
       mock(),
       mock(),
       mock(),
       mock(),
       mock(),
       userClock,
-      UserInputDatePaddingCharacter.ZERO,
       TrampolineSchedulersProvider()
-  )
+  ).build()
   private val testCase = EffectHandlerTestCase(effectHandler)
 
   @After

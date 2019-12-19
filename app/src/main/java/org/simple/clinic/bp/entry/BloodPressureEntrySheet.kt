@@ -18,23 +18,17 @@ import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.sheet_blood_pressure_entry.*
 import org.simple.clinic.R
 import org.simple.clinic.ReportAnalyticsEvents
-import org.simple.clinic.bp.BloodPressureRepository
 import org.simple.clinic.bp.entry.BloodPressureEntrySheet.ScreenType.BP_ENTRY
 import org.simple.clinic.bp.entry.BloodPressureEntrySheet.ScreenType.DATE_ENTRY
 import org.simple.clinic.bp.entry.OpenAs.New
 import org.simple.clinic.bp.entry.OpenAs.Update
 import org.simple.clinic.bp.entry.confirmremovebloodpressure.ConfirmRemoveBloodPressureDialog
 import org.simple.clinic.bp.entry.confirmremovebloodpressure.ConfirmRemoveBloodPressureDialog.RemoveBloodPressureListener
-import org.simple.clinic.facility.FacilityRepository
 import org.simple.clinic.main.TheActivity
 import org.simple.clinic.mobius.MobiusActivityDelegate
-import org.simple.clinic.overdue.AppointmentRepository
-import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.platform.crash.CrashReporter
-import org.simple.clinic.user.UserSession
 import org.simple.clinic.util.UserClock
 import org.simple.clinic.util.UserInputDatePaddingCharacter
-import org.simple.clinic.util.scheduler.SchedulersProvider
 import org.simple.clinic.util.unsafeLazy
 import org.simple.clinic.widgets.BottomSheetActivity
 import org.simple.clinic.widgets.ScreenDestroyed
@@ -82,9 +76,6 @@ class BloodPressureEntrySheet : BottomSheetActivity(), BloodPressureEntryUi, Rem
   lateinit var userInputDatePaddingCharacter: UserInputDatePaddingCharacter
 
   @Inject
-  lateinit var schedulersProvider: SchedulersProvider
-
-  @Inject
   lateinit var userClock: UserClock
 
   @Inject
@@ -100,19 +91,7 @@ class BloodPressureEntrySheet : BottomSheetActivity(), BloodPressureEntryUi, Rem
   lateinit var dateValidator: UserInputDateValidator
 
   @Inject
-  lateinit var bloodPressureRepository: BloodPressureRepository
-
-  @Inject
-  lateinit var userSession: UserSession
-
-  @Inject
-  lateinit var facilityRepository: FacilityRepository
-
-  @Inject
-  lateinit var appointmentsRepository: AppointmentRepository
-
-  @Inject
-  lateinit var patientRepository: PatientRepository
+  lateinit var effectHandler: BloodPressureEntryEffectHandler.Factory
 
   private val uiRenderer = BloodPressureEntryUiRenderer(this)
 
@@ -120,24 +99,12 @@ class BloodPressureEntrySheet : BottomSheetActivity(), BloodPressureEntryUi, Rem
     val openAs = intent.extras!!.getParcelable<OpenAs>(KEY_OPEN_AS)!!
     val defaultModel = BloodPressureEntryModel.create(openAs, LocalDate.now(userClock).year)
 
-    val effectHandler = BloodPressureEntryEffectHandler.create(
-        this,
-        userSession,
-        facilityRepository,
-        patientRepository,
-        bloodPressureRepository,
-        appointmentsRepository,
-        userClock,
-        userInputDatePaddingCharacter,
-        schedulersProvider
-    )
-
     MobiusActivityDelegate(
         events.ofType(),
         defaultModel,
         BloodPressureEntryInit(),
         BloodPressureEntryUpdate(bpValidator, dateValidator, LocalDate.now(userTimeZone), userInputDatePaddingCharacter),
-        effectHandler,
+        effectHandler.create(this).build(),
         uiRenderer::render,
         crashReporter
     )
