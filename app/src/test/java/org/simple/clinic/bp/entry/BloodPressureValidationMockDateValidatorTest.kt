@@ -21,13 +21,10 @@ import org.simple.clinic.bp.BloodPressureRepository
 import org.simple.clinic.bp.entry.BloodPressureEntrySheetLogicTest.InvalidDateTestParams
 import org.simple.clinic.bp.entry.OpenAs.New
 import org.simple.clinic.bp.entry.OpenAs.Update
-import org.simple.clinic.facility.FacilityRepository
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.overdue.AppointmentRepository
 import org.simple.clinic.patient.PatientMocker
 import org.simple.clinic.patient.PatientRepository
-import org.simple.clinic.user.User
-import org.simple.clinic.user.UserSession
 import org.simple.clinic.util.RxErrorsRule
 import org.simple.clinic.util.TestUserClock
 import org.simple.clinic.util.TestUtcClock
@@ -61,7 +58,6 @@ class BloodPressureValidationMockDateValidatorTest {
   private val testUserClock = TestUserClock()
   private val testUtcClock = TestUtcClock()
 
-  private val facilityRepository = mock<FacilityRepository>()
   private val user = PatientMocker.loggedInUser(uuid = UUID.fromString("1367a583-12b1-48c6-ae9d-fb34f9aac449"))
 
   private val facility = PatientMocker.facility(uuid = UUID.fromString("2a70f82e-92c6-4fce-b60e-6f083a8e725b"))
@@ -75,7 +71,6 @@ class BloodPressureValidationMockDateValidatorTest {
     RxJavaPlugins.setIoSchedulerHandler { Schedulers.trampoline() }
 
     whenever(dateValidator.dateInUserTimeZone()).doReturn(LocalDate.now(testUtcClock))
-    whenever(facilityRepository.currentFacility(user)).doReturn(Observable.just(facility))
   }
 
   // TODO(rj): 2019-10-10 There isn't a straight-forward way to set a time in the date validator as of now.
@@ -110,12 +105,12 @@ class BloodPressureValidationMockDateValidatorTest {
   @Suppress("unused")
   fun `params for showing date validation errors`(): List<InvalidDateTestParams> {
     return listOf(
-        InvalidDateTestParams(New(patientUuid), "01", "01", "2099", DateIsInFuture) {
-          ui: Ui -> verify(ui).showDateIsInFutureError()
+        InvalidDateTestParams(New(patientUuid), "01", "01", "2099", DateIsInFuture) { ui: Ui ->
+          verify(ui).showDateIsInFutureError()
         },
 
-        InvalidDateTestParams(Update(existingBpUuid), "01", "01", "2099", DateIsInFuture) {
-          ui: Ui -> verify(ui).showDateIsInFutureError()
+        InvalidDateTestParams(Update(existingBpUuid), "01", "01", "2099", DateIsInFuture) { ui: Ui ->
+          verify(ui).showDateIsInFutureError()
         }
     )
   }
@@ -181,13 +176,13 @@ class BloodPressureValidationMockDateValidatorTest {
   private fun instantiateFixture(openAs: OpenAs) {
     val effectHandler = BloodPressureEntryEffectHandler(
         ui = ui,
-        facilityRepository = facilityRepository,
         patientRepository = patientRepository,
         bloodPressureRepository = bloodPressureRepository,
         appointmentsRepository = appointmentRepository,
         userClock = testUserClock,
         schedulersProvider = TrampolineSchedulersProvider(),
-        fetchCurrentUser = Function0 { user }
+        fetchCurrentUser = Function0 { user },
+        fetchCurrentFacility = Function0 { facility }
     ).build()
 
     fixture = MobiusTestFixture(

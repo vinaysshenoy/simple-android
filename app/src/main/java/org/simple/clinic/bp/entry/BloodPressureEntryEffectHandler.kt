@@ -23,7 +23,6 @@ import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorSystolicTooLow
 import org.simple.clinic.bp.entry.BpValidator.Validation.Success
 import org.simple.clinic.bp.entry.PrefillDate.PrefillSpecificDate
 import org.simple.clinic.facility.Facility
-import org.simple.clinic.facility.FacilityRepository
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.overdue.AppointmentRepository
 import org.simple.clinic.patient.PatientRepository
@@ -43,13 +42,13 @@ import java.util.UUID
 
 class BloodPressureEntryEffectHandler @AssistedInject constructor(
     @Assisted private val ui: BloodPressureEntryUi,
-    private val facilityRepository: FacilityRepository,
     private val patientRepository: PatientRepository,
     private val bloodPressureRepository: BloodPressureRepository,
     private val appointmentsRepository: AppointmentRepository,
     private val userClock: UserClock,
     private val schedulersProvider: SchedulersProvider,
-    private val fetchCurrentUser: Function0<User>
+    private val fetchCurrentUser: Function0<User>,
+    private val fetchCurrentFacility: Function0<Facility>
 ) {
 
   @AssistedInject.Factory
@@ -232,13 +231,11 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
   }
 
   private fun userAndCurrentFacility(): Single<Pair<User, Facility>> {
-    return Single.fromCallable(fetchCurrentUser::call)
-        .flatMap { user ->
-          facilityRepository
-              .currentFacility(user)
-              .map { facility -> user to facility }
-              .firstOrError()
-        }
+    return Single.fromCallable {
+      val user = fetchCurrentUser.call()
+      val facility = fetchCurrentFacility.call()
+      user to facility
+    }
   }
 
   private fun storeNewBloodPressureMeasurement(

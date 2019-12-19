@@ -38,7 +38,7 @@ import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorSystolicTooHigh
 import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorSystolicTooLow
 import org.simple.clinic.bp.entry.OpenAs.New
 import org.simple.clinic.bp.entry.OpenAs.Update
-import org.simple.clinic.facility.FacilityRepository
+import org.simple.clinic.facility.Facility
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.overdue.AppointmentRepository
 import org.simple.clinic.patient.PatientMocker
@@ -81,7 +81,6 @@ class BloodPressureEntrySheetLogicTest {
   private val uiEvents = PublishSubject.create<UiEvent>()
   private val patientUuid = UUID.fromString("79145baf-7a5c-4442-ab30-2da564a32944")
 
-  private val facilityRepository = mock<FacilityRepository>()
   private val user = PatientMocker.loggedInUser(uuid = UUID.fromString("1367a583-12b1-48c6-ae9d-fb34f9aac449"))
 
   private val facility = PatientMocker.facility(uuid = UUID.fromString("2a70f82e-92c6-4fce-b60e-6f083a8e725b"))
@@ -92,8 +91,6 @@ class BloodPressureEntrySheetLogicTest {
   @Before
   fun setUp() {
     RxJavaPlugins.setIoSchedulerHandler { Schedulers.trampoline() }
-
-    whenever(facilityRepository.currentFacility(user)).doReturn(Observable.just(facility))
   }
 
   @Test
@@ -129,7 +126,7 @@ class BloodPressureEntrySheetLogicTest {
       systolicAfterBackspace: String
   ) {
     sheetCreatedForNew(patientUuid)
-    reset(ui, facilityRepository, patientRepository, appointmentRepository, bloodPressureRepository)
+    reset(ui, patientRepository, appointmentRepository, bloodPressureRepository)
 
     uiEvents.onNext(SystolicChanged(existingSystolic))
     uiEvents.onNext(DiastolicChanged("142"))
@@ -892,11 +889,8 @@ class BloodPressureEntrySheetLogicTest {
   @Test
   fun `when a different user clicks on save while updating a BP, then the updated BP measurement should be saved with the user's ID and the corresponding facility ID`() {
     // given
-    reset(facilityRepository)
     val userFromDifferentFacility = PatientMocker.loggedInUser(uuid = UUID.fromString("4844b826-a162-49fe-b92c-962da172e86c"))
     val differentFacility = PatientMocker.facility(uuid = UUID.fromString("f895b54f-ee32-4471-bc0c-a91b80368778"))
-
-    whenever(facilityRepository.currentFacility(userFromDifferentFacility)).doReturn(Observable.just(differentFacility))
 
     val oldCreatedAt = Instant.parse("1990-01-13T00:00:00Z")
     val patientUuid = UUID.fromString("af92b081-0131-4f91-9c28-98da5737945b")
@@ -917,7 +911,8 @@ class BloodPressureEntrySheetLogicTest {
 
     sheetCreatedForUpdate(
         existingBpUuid = existingBp.uuid,
-        fetchCurrentUser = Function0 { userFromDifferentFacility }
+        fetchCurrentUser = Function0 { userFromDifferentFacility },
+        fetchCurrentFacility = Function0 { differentFacility }
     )
     uiEvents.run {
       onNext(ScreenChanged(BP_ENTRY))
@@ -955,11 +950,8 @@ class BloodPressureEntrySheetLogicTest {
   @Test
   fun `when done button is clicked by a user from a different facility in update BP entry, then save BP with entered date immediately`() {
     // given
-    reset(facilityRepository)
     val userFromDifferentFacility = PatientMocker.loggedInUser(uuid = UUID.fromString("e246c4fb-5a8d-418a-b80a-9e9d12ca1a8c"))
     val differentFacility = PatientMocker.facility(uuid = UUID.fromString("d9ea6458-fbe2-4d59-b1ac-7dc77b234486"))
-
-    whenever(facilityRepository.currentFacility(userFromDifferentFacility)).doReturn(Observable.just(differentFacility))
 
     val systolic = 120.toString()
     val diastolic = 110.toString()
@@ -994,7 +986,8 @@ class BloodPressureEntrySheetLogicTest {
 
     sheetCreatedForUpdate(
         existingBpUuid = existingBp.uuid,
-        fetchCurrentUser = Function0 { userFromDifferentFacility }
+        fetchCurrentUser = Function0 { userFromDifferentFacility },
+        fetchCurrentFacility = Function0 { differentFacility }
     )
     with(uiEvents) {
       onNext(ScreenChanged(BP_ENTRY))
@@ -1022,50 +1015,64 @@ class BloodPressureEntrySheetLogicTest {
 
   private fun sheetCreatedForNew(
       patientUuid: UUID,
-      fetchCurrentUser: Function0<User> = Function0 { user }
+      fetchCurrentUser: Function0<User> = Function0 { user },
+      fetchCurrentFacility: Function0<Facility> = Function0 { facility }
   ) {
     val openAsNew = New(patientUuid)
     instantiateFixture(
         openAs = openAsNew,
-        fetchCurrentUser = fetchCurrentUser
+        fetchCurrentUser = fetchCurrentUser,
+        fetchCurrentFacility = fetchCurrentFacility
     )
   }
 
   private fun sheetCreatedForUpdate(
       existingBpUuid: UUID,
-      fetchCurrentUser: Function0<User> = Function0 { user }
+      fetchCurrentUser: Function0<User> = Function0 { user },
+      fetchCurrentFacility: Function0<Facility> = Function0 { facility }
   ) {
     val openAsUpdate = Update(existingBpUuid)
     instantiateFixture(
         openAs = openAsUpdate,
-        fetchCurrentUser = fetchCurrentUser
+        fetchCurrentUser = fetchCurrentUser,
+        fetchCurrentFacility = fetchCurrentFacility
     )
   }
 
   private fun sheetCreated(
       openAs: OpenAs,
-      fetchCurrentUser: Function0<User> = Function0 { user }
+      fetchCurrentUser: Function0<User> = Function0 { user },
+      fetchCurrentFacility: Function0<Facility> = Function0 { facility }
   ) {
     when (openAs) {
-      is New -> sheetCreatedForNew(patientUuid = openAs.patientUuid, fetchCurrentUser = fetchCurrentUser)
-      is Update -> sheetCreatedForUpdate(existingBpUuid = openAs.bpUuid, fetchCurrentUser = fetchCurrentUser)
+      is New -> sheetCreatedForNew(
+          patientUuid = openAs.patientUuid,
+          fetchCurrentUser = fetchCurrentUser,
+          fetchCurrentFacility = fetchCurrentFacility
+      )
+      is Update -> sheetCreatedForUpdate(
+          existingBpUuid = openAs.bpUuid,
+          fetchCurrentUser = fetchCurrentUser,
+          fetchCurrentFacility = fetchCurrentFacility
+      )
       else -> throw IllegalStateException("Unknown `openAs`: $openAs")
     }
   }
 
   private fun instantiateFixture(
       openAs: OpenAs,
-      fetchCurrentUser: Function0<User>
+      fetchCurrentUser: Function0<User>,
+      fetchCurrentFacility: Function0<Facility>
   ) {
     val effectHandler = BloodPressureEntryEffectHandler(
         ui = ui,
-        facilityRepository = facilityRepository,
         patientRepository = patientRepository,
         bloodPressureRepository = bloodPressureRepository,
         appointmentsRepository = appointmentRepository,
         userClock = testUserClock,
         schedulersProvider = TrampolineSchedulersProvider(),
-        fetchCurrentUser = fetchCurrentUser
+        fetchCurrentUser = fetchCurrentUser,
+        fetchCurrentFacility = fetchCurrentFacility
     ).build()
 
     fixture = MobiusTestFixture(

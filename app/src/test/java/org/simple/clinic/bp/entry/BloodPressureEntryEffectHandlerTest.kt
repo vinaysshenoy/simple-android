@@ -18,13 +18,13 @@ class BloodPressureEntryEffectHandlerTest {
   private val userClock = TestUserClock()
   private val effectHandler = BloodPressureEntryEffectHandler(
       ui = ui,
-      facilityRepository = mock(),
       patientRepository = mock(),
       bloodPressureRepository = mock(),
       appointmentsRepository = mock(),
       userClock = userClock,
       schedulersProvider = TrampolineSchedulersProvider(),
-      fetchCurrentUser = Function0 { PatientMocker.loggedInUser(uuid = UUID.fromString("1080d084-9835-4d9c-a279-327c2d52577a")) }
+      fetchCurrentUser = Function0 { PatientMocker.loggedInUser(uuid = UUID.fromString("1080d084-9835-4d9c-a279-327c2d52577a")) },
+      fetchCurrentFacility = Function0 { PatientMocker.facility(uuid = UUID.fromString("4ac91d66-b805-4342-8f0b-94cdbb6ae5ae")) }
   ).build()
   private val testCase = EffectHandlerTestCase(effectHandler)
 
