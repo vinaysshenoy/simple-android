@@ -8,7 +8,6 @@ import io.reactivex.ObservableTransformer
 import io.reactivex.Scheduler
 import io.reactivex.Single
 import io.reactivex.rxkotlin.cast
-import io.reactivex.rxkotlin.zipWith
 import org.simple.clinic.ReportAnalyticsEvents
 import org.simple.clinic.bp.BloodPressureMeasurement
 import org.simple.clinic.bp.BloodPressureRepository
@@ -152,8 +151,7 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
     return ObservableTransformer { createNewBpEntries ->
       createNewBpEntries
           .flatMapSingle { createNewBpEntry ->
-            userAndCurrentFacility()
-                .flatMap { (user, facility) -> storeNewBloodPressureMeasurement(user, facility, createNewBpEntry) }
+            storeNewBloodPressureMeasurement(createNewBpEntry)
                 .flatMap { updateAppointmentsAsVisited(createNewBpEntry, it) }
           }
           .compose(reportAnalyticsEvents)
@@ -195,11 +193,7 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
       updateBpEntry: UpdateBpEntry
   ): Single<BloodPressureMeasurement> {
     return getExistingBloodPressureMeasurement(updateBpEntry.bpUuid)
-        .zipWith(userAndCurrentFacility())
-        .map { (existingBloodPressureMeasurement, userFacilityPair) ->
-          val (user, facility) = userFacilityPair
-          updateBloodPressureMeasurementValues(existingBloodPressureMeasurement, user.uuid, facility.uuid, updateBpEntry)
-        }
+        .map { existingBloodPressureMeasurement -> updateBloodPressureMeasurementValues(existingBloodPressureMeasurement, updateBpEntry) }
   }
 
   private fun storeUpdateBloodPressureMeasurement(
@@ -215,34 +209,24 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
 
   private fun updateBloodPressureMeasurementValues(
       existingMeasurement: BloodPressureMeasurement,
-      userUuid: UUID,
-      facilityUuid: UUID,
       updateBpEntry: UpdateBpEntry
   ): BloodPressureMeasurement {
     val (_, systolic, diastolic, parsedDateFromForm, _) = updateBpEntry
+    val user = fetchCurrentUser.call()
+    val facility = fetchCurrentFacility.call()
 
     return existingMeasurement.copy(
-        userUuid = userUuid,
-        facilityUuid = facilityUuid,
+        userUuid = user.uuid,
+        facilityUuid = facility.uuid,
         systolic = systolic,
         diastolic = diastolic,
         recordedAt = parsedDateFromForm.toUtcInstant(userClock)
     )
   }
 
-  private fun userAndCurrentFacility(): Single<Pair<User, Facility>> {
-    return Single.fromCallable {
-      val user = fetchCurrentUser.call()
-      val facility = fetchCurrentFacility.call()
-      user to facility
-    }
-  }
-
-  private fun storeNewBloodPressureMeasurement(
-      user: User,
-      currentFacility: Facility,
-      entry: CreateNewBpEntry
-  ): Single<BloodPressureMeasurement> {
+  private fun storeNewBloodPressureMeasurement(entry: CreateNewBpEntry): Single<BloodPressureMeasurement> {
+    val user = fetchCurrentUser.call()
+    val currentFacility = fetchCurrentFacility.call()
     val (patientUuid, systolic, diastolic, date) = entry
     return bloodPressureRepository.saveMeasurement(patientUuid, systolic, diastolic, user, currentFacility, date.toUtcInstant(userClock))
   }
