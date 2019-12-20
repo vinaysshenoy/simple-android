@@ -5,10 +5,13 @@ import dagger.Provides
 import org.simple.clinic.facility.Facility
 import org.simple.clinic.functions.CachedFunction0.cached
 import org.simple.clinic.functions.Function0
-import org.simple.clinic.functions.SynchronisedFunction0
-import org.simple.clinic.functions.SynchronisedFunction0.*
+import org.simple.clinic.functions.Function2
+import org.simple.clinic.functions.SynchronisedFunction0.synchronised
+import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.user.LoggedInUserFacilityMapping
 import org.simple.clinic.user.User
+import org.threeten.bp.Instant
+import java.util.UUID
 
 @Module
 class BloodPressureEntryEffectHandlerDependencies {
@@ -34,5 +37,10 @@ class BloodPressureEntryEffectHandlerDependencies {
     }
 
     return synchronised(cached(supplier))
+  }
+
+  @Provides
+  fun bindUpdatePatientRecordedEffect(patientRepository: PatientRepository): Function2<UUID, Instant, Unit> {
+    return Function2 { patientUuid, instant -> patientRepository.compareAndUpdateRecordedAt(patientUuid, instant).blockingAwait() }
   }
 }

@@ -5,6 +5,7 @@ import com.nhaarman.mockito_kotlin.verify
 import org.junit.After
 import org.junit.Test
 import org.simple.clinic.functions.Function0
+import org.simple.clinic.functions.Function2
 import org.simple.clinic.mobius.EffectHandlerTestCase
 import org.simple.clinic.patient.PatientMocker
 import org.simple.clinic.util.TestUserClock
@@ -18,13 +19,13 @@ class BloodPressureEntryEffectHandlerTest {
   private val userClock = TestUserClock()
   private val effectHandler = BloodPressureEntryEffectHandler(
       ui = ui,
-      patientRepository = mock(),
       bloodPressureRepository = mock(),
       appointmentsRepository = mock(),
       userClock = userClock,
       schedulersProvider = TrampolineSchedulersProvider(),
       fetchCurrentUser = Function0 { PatientMocker.loggedInUser(uuid = UUID.fromString("1080d084-9835-4d9c-a279-327c2d52577a")) },
-      fetchCurrentFacility = Function0 { PatientMocker.facility(uuid = UUID.fromString("4ac91d66-b805-4342-8f0b-94cdbb6ae5ae")) }
+      fetchCurrentFacility = Function0 { PatientMocker.facility(uuid = UUID.fromString("4ac91d66-b805-4342-8f0b-94cdbb6ae5ae")) },
+      updatePatientRecordedEffect = Function2 { _, _ ->  }
   ).build()
   private val testCase = EffectHandlerTestCase(effectHandler)
 

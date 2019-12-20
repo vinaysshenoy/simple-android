@@ -23,8 +23,8 @@ import org.simple.clinic.bp.entry.BpValidator.Validation.Success
 import org.simple.clinic.bp.entry.PrefillDate.PrefillSpecificDate
 import org.simple.clinic.facility.Facility
 import org.simple.clinic.functions.Function0
+import org.simple.clinic.functions.Function2
 import org.simple.clinic.overdue.AppointmentRepository
-import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.user.User
 import org.simple.clinic.util.UserClock
 import org.simple.clinic.util.exhaustive
@@ -41,13 +41,13 @@ import java.util.UUID
 
 class BloodPressureEntryEffectHandler @AssistedInject constructor(
     @Assisted private val ui: BloodPressureEntryUi,
-    private val patientRepository: PatientRepository,
     private val bloodPressureRepository: BloodPressureRepository,
     private val appointmentsRepository: AppointmentRepository,
     private val userClock: UserClock,
     private val schedulersProvider: SchedulersProvider,
     private val fetchCurrentUser: Function0<User>,
-    private val fetchCurrentFacility: Function0<Facility>
+    private val fetchCurrentFacility: Function0<Facility>,
+    private val updatePatientRecordedEffect: Function2<UUID, Instant, Unit>
 ) {
 
   @AssistedInject.Factory
@@ -163,13 +163,13 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
       createNewBpEntry: CreateNewBpEntry,
       bloodPressureMeasurement: BloodPressureMeasurement
   ): Single<BloodPressureSaved> {
-    val entryDate = createNewBpEntry.userEnteredDate.toUtcInstant(userClock)
-    val compareAndUpdateRecordedAt = patientRepository
-        .compareAndUpdateRecordedAt(bloodPressureMeasurement.patientUuid, entryDate)
-
     return appointmentsRepository
         .markAppointmentsCreatedBeforeTodayAsVisited(bloodPressureMeasurement.patientUuid)
-        .andThen(compareAndUpdateRecordedAt)
+        .doOnComplete {
+          val entryDate = createNewBpEntry.userEnteredDate.toUtcInstant(userClock)
+
+          updatePatientRecordedEffect.call(bloodPressureMeasurement.patientUuid, entryDate)
+        }
         .toSingleDefault(BloodPressureSaved(createNewBpEntry.wasDateChanged))
   }
 
@@ -199,12 +199,9 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
   private fun storeUpdateBloodPressureMeasurement(
       bloodPressureMeasurement: BloodPressureMeasurement
   ): Completable {
-    val compareAndUpdateRecordedAt = patientRepository
-        .compareAndUpdateRecordedAt(bloodPressureMeasurement.patientUuid, bloodPressureMeasurement.recordedAt)
-
     return bloodPressureRepository
         .updateMeasurement(bloodPressureMeasurement)
-        .andThen(compareAndUpdateRecordedAt)
+        .doOnComplete { updatePatientRecordedEffect.call(bloodPressureMeasurement.patientUuid, bloodPressureMeasurement.recordedAt) }
   }
 
   private fun updateBloodPressureMeasurementValues(

@@ -4,7 +4,6 @@ import com.google.common.truth.Truth.assertThat
 import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.atLeastOnce
 import com.nhaarman.mockito_kotlin.doReturn
-import com.nhaarman.mockito_kotlin.eq
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.never
 import com.nhaarman.mockito_kotlin.reset
@@ -40,6 +39,8 @@ import org.simple.clinic.bp.entry.OpenAs.New
 import org.simple.clinic.bp.entry.OpenAs.Update
 import org.simple.clinic.facility.Facility
 import org.simple.clinic.functions.Function0
+import org.simple.clinic.functions.Function2
+import org.simple.clinic.functions.MockFunctions
 import org.simple.clinic.overdue.AppointmentRepository
 import org.simple.clinic.patient.PatientMocker
 import org.simple.clinic.patient.PatientRepository
@@ -73,7 +74,6 @@ class BloodPressureEntrySheetLogicTest {
   private val ui = mock<BloodPressureEntryUi>()
   private val bloodPressureRepository = mock<BloodPressureRepository>()
   private val appointmentRepository = mock<AppointmentRepository>()
-  private val patientRepository = mock<PatientRepository>()
   private val testUserClock = TestUserClock()
   private val dateValidator = UserInputDateValidator(testUserClock, DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ENGLISH))
   private val bpValidator = BpValidator()
@@ -126,7 +126,7 @@ class BloodPressureEntrySheetLogicTest {
       systolicAfterBackspace: String
   ) {
     sheetCreatedForNew(patientUuid)
-    reset(ui, patientRepository, appointmentRepository, bloodPressureRepository)
+    reset(ui, appointmentRepository, bloodPressureRepository)
 
     uiEvents.onNext(SystolicChanged(existingSystolic))
     uiEvents.onNext(DiastolicChanged("142"))
@@ -323,11 +323,11 @@ class BloodPressureEntrySheetLogicTest {
   @Test
   fun `when save is clicked for a new BP, date entry is active and input is valid then a BP measurement should be saved`() {
     val inputDate = LocalDate.of(1990, 2, 13)
-    whenever(patientRepository.compareAndUpdateRecordedAt(any(), any())).doReturn(Completable.complete())
     whenever(bloodPressureRepository.saveMeasurement(any(), any(), any(), any(), any(), any())).doReturn(Single.just(PatientMocker.bp(patientUuid = patientUuid)))
     whenever(appointmentRepository.markAppointmentsCreatedBeforeTodayAsVisited(patientUuid)).doReturn(Completable.complete())
+    val updatePatientRecordedEffect = MockFunctions.function2<UUID, Instant, Unit>(Unit)
 
-    sheetCreatedForNew(patientUuid)
+    sheetCreatedForNew(patientUuid, updatePatientRecordedEffect = updatePatientRecordedEffect)
     uiEvents.run {
       onNext(ScreenChanged(BP_ENTRY))
       onNext(SystolicChanged("13"))
@@ -353,7 +353,7 @@ class BloodPressureEntrySheetLogicTest {
         currentFacility = facility,
         recordedAt = entryDateAsInstant)
     verify(appointmentRepository).markAppointmentsCreatedBeforeTodayAsVisited(patientUuid)
-    verify(patientRepository).compareAndUpdateRecordedAt(patientUuid, entryDateAsInstant)
+    updatePatientRecordedEffect.invocations.assertCalledWithParameters(patientUuid, entryDateAsInstant)
     verify(ui).setBpSavedResultAndFinish()
   }
 
@@ -374,9 +374,9 @@ class BloodPressureEntrySheetLogicTest {
     whenever(bloodPressureRepository.saveMeasurement(any(), any(), any(), any(), any(), any())).doReturn(Single.just(PatientMocker.bp()))
     whenever(bloodPressureRepository.measurement(existingBp.uuid)).doReturn(Observable.just(existingBp))
     whenever(bloodPressureRepository.updateMeasurement(any())).doReturn(Completable.complete())
-    whenever(patientRepository.compareAndUpdateRecordedAt(any(), any())).doReturn(Completable.complete())
+    val updatePatientRecordedEffect = MockFunctions.function2<UUID, Instant, Unit>(Unit)
 
-    sheetCreatedForUpdate(existingBp.uuid)
+    sheetCreatedForUpdate(existingBp.uuid, updatePatientRecordedEffect = updatePatientRecordedEffect)
     uiEvents.run {
       onNext(ScreenChanged(BP_ENTRY))
       onNext(SystolicChanged("120"))
@@ -400,7 +400,7 @@ class BloodPressureEntrySheetLogicTest {
         recordedAt = newInputDateAsInstant
     )
     verify(bloodPressureRepository).updateMeasurement(updatedBp)
-    verify(patientRepository).compareAndUpdateRecordedAt(updatedBp.patientUuid, updatedBp.recordedAt)
+    updatePatientRecordedEffect.invocations.assertCalledWithParameters(updatedBp.patientUuid, updatedBp.recordedAt)
 
     verify(bloodPressureRepository, never()).saveMeasurement(any(), any(), any(), any(), any(), any())
     verify(appointmentRepository, never()).markAppointmentsCreatedBeforeTodayAsVisited(any())
@@ -799,9 +799,9 @@ class BloodPressureEntrySheetLogicTest {
     whenever(bloodPressureRepository.saveMeasurement(any(), any(), any(), any(), any(), any()))
         .doReturn(Single.just(PatientMocker.bp(patientUuid = patientUuid)))
     whenever(appointmentRepository.markAppointmentsCreatedBeforeTodayAsVisited(patientUuid)).doReturn(Completable.complete())
-    whenever(patientRepository.compareAndUpdateRecordedAt(any(), any())).doReturn(Completable.complete())
+    val updatePatientRecordedEffect = MockFunctions.function2<UUID, Instant, Unit>(Unit)
 
-    sheetCreatedForNew(patientUuid)
+    sheetCreatedForNew(patientUuid, updatePatientRecordedEffect = updatePatientRecordedEffect)
     with(uiEvents) {
       onNext(ScreenChanged(BP_ENTRY))
       onNext(SystolicChanged(systolic))
@@ -824,7 +824,7 @@ class BloodPressureEntrySheetLogicTest {
         recordedAt = entryDateAsInstant
     )
     verify(appointmentRepository).markAppointmentsCreatedBeforeTodayAsVisited(patientUuid)
-    verify(patientRepository).compareAndUpdateRecordedAt(patientUuid, entryDateAsInstant)
+    updatePatientRecordedEffect.invocations.assertCalledWithParameters(patientUuid, entryDateAsInstant)
     verify(ui).setBpSavedResultAndFinish()
 
     verifyNoMoreInteractions(ui)
@@ -852,9 +852,9 @@ class BloodPressureEntrySheetLogicTest {
     whenever(bloodPressureRepository.measurement(any())).doReturn(Observable.just(existingBp))
 
     whenever(bloodPressureRepository.updateMeasurement(any())).doReturn(Completable.complete())
-    whenever(patientRepository.compareAndUpdateRecordedAt(any(), any())).doReturn(Completable.complete())
+    val updatePatientRecordedEffect = MockFunctions.function2<UUID, Instant, Unit>(Unit)
 
-    sheetCreatedForUpdate(existingBp.uuid)
+    sheetCreatedForUpdate(existingBp.uuid, updatePatientRecordedEffect = updatePatientRecordedEffect)
     with(uiEvents) {
       onNext(ScreenChanged(BP_ENTRY))
       onNext(SystolicChanged(systolic))
@@ -880,7 +880,7 @@ class BloodPressureEntrySheetLogicTest {
     verify(bloodPressureRepository, never()).saveMeasurement(any(), any(), any(), any(), any(), any())
     verify(appointmentRepository, never()).markAppointmentsCreatedBeforeTodayAsVisited(any())
 
-    verify(patientRepository).compareAndUpdateRecordedAt(patientUuid, entryDateAsInstant)
+    updatePatientRecordedEffect.invocations.assertCalledWithParameters(patientUuid, entryDateAsInstant)
     verify(ui).setBpSavedResultAndFinish()
 
     verifyNoMoreInteractions(ui)
@@ -907,12 +907,13 @@ class BloodPressureEntrySheetLogicTest {
 
     whenever(bloodPressureRepository.measurement(existingBp.uuid)).doReturn(Observable.just(existingBp))
     whenever(bloodPressureRepository.updateMeasurement(any())).doReturn(Completable.complete())
-    whenever(patientRepository.compareAndUpdateRecordedAt(any(), any())).doReturn(Completable.complete())
+    val updatePatientRecordedEffect = MockFunctions.function2<UUID, Instant, Unit>(Unit)
 
     sheetCreatedForUpdate(
         existingBpUuid = existingBp.uuid,
         fetchCurrentUser = Function0 { userFromDifferentFacility },
-        fetchCurrentFacility = Function0 { differentFacility }
+        fetchCurrentFacility = Function0 { differentFacility },
+        updatePatientRecordedEffect = updatePatientRecordedEffect
     )
     uiEvents.run {
       onNext(ScreenChanged(BP_ENTRY))
@@ -940,7 +941,7 @@ class BloodPressureEntrySheetLogicTest {
         facilityUuid = differentFacility.uuid
     )
     verify(bloodPressureRepository).updateMeasurement(updatedBp)
-    verify(patientRepository).compareAndUpdateRecordedAt(updatedBp.patientUuid, updatedBp.recordedAt)
+    updatePatientRecordedEffect.invocations.assertCalledWithParameters(updatedBp.patientUuid, updatedBp.recordedAt)
 
     verify(bloodPressureRepository, never()).saveMeasurement(any(), any(), any(), any(), any(), any())
     verify(appointmentRepository, never()).markAppointmentsCreatedBeforeTodayAsVisited(any())
@@ -982,12 +983,13 @@ class BloodPressureEntrySheetLogicTest {
     whenever(bloodPressureRepository.measurement(any())).doReturn(Observable.just(existingBp))
 
     whenever(bloodPressureRepository.updateMeasurement(updatedBp)).doReturn(Completable.complete())
-    whenever(patientRepository.compareAndUpdateRecordedAt(eq(patientUuid), any())).doReturn(Completable.complete())
+    val updatePatientRecordedEffect = MockFunctions.function2<UUID, Instant, Unit>(Unit)
 
     sheetCreatedForUpdate(
         existingBpUuid = existingBp.uuid,
         fetchCurrentUser = Function0 { userFromDifferentFacility },
-        fetchCurrentFacility = Function0 { differentFacility }
+        fetchCurrentFacility = Function0 { differentFacility },
+        updatePatientRecordedEffect = updatePatientRecordedEffect
     )
     with(uiEvents) {
       onNext(ScreenChanged(BP_ENTRY))
@@ -1006,8 +1008,7 @@ class BloodPressureEntrySheetLogicTest {
 
     verify(bloodPressureRepository, never()).saveMeasurement(any(), any(), any(), any(), any(), any())
     verify(appointmentRepository, never()).markAppointmentsCreatedBeforeTodayAsVisited(any())
-
-    verify(patientRepository).compareAndUpdateRecordedAt(patientUuid, entryDateAsInstant)
+    updatePatientRecordedEffect.invocations.assertCalledWithParameters(patientUuid, entryDateAsInstant)
     verify(ui).setBpSavedResultAndFinish()
 
     verifyNoMoreInteractions(ui)
@@ -1016,44 +1017,51 @@ class BloodPressureEntrySheetLogicTest {
   private fun sheetCreatedForNew(
       patientUuid: UUID,
       fetchCurrentUser: Function0<User> = Function0 { user },
-      fetchCurrentFacility: Function0<Facility> = Function0 { facility }
+      fetchCurrentFacility: Function0<Facility> = Function0 { facility },
+      updatePatientRecordedEffect: Function2<UUID, Instant, Unit> = Function2 { _, _ -> }
   ) {
     val openAsNew = New(patientUuid)
     instantiateFixture(
         openAs = openAsNew,
         fetchCurrentUser = fetchCurrentUser,
-        fetchCurrentFacility = fetchCurrentFacility
+        fetchCurrentFacility = fetchCurrentFacility,
+        updatePatientRecordedEffect = updatePatientRecordedEffect
     )
   }
 
   private fun sheetCreatedForUpdate(
       existingBpUuid: UUID,
       fetchCurrentUser: Function0<User> = Function0 { user },
-      fetchCurrentFacility: Function0<Facility> = Function0 { facility }
+      fetchCurrentFacility: Function0<Facility> = Function0 { facility },
+      updatePatientRecordedEffect: Function2<UUID, Instant, Unit> = Function2 { _, _ -> }
   ) {
     val openAsUpdate = Update(existingBpUuid)
     instantiateFixture(
         openAs = openAsUpdate,
         fetchCurrentUser = fetchCurrentUser,
-        fetchCurrentFacility = fetchCurrentFacility
+        fetchCurrentFacility = fetchCurrentFacility,
+        updatePatientRecordedEffect = updatePatientRecordedEffect
     )
   }
 
   private fun sheetCreated(
       openAs: OpenAs,
       fetchCurrentUser: Function0<User> = Function0 { user },
-      fetchCurrentFacility: Function0<Facility> = Function0 { facility }
+      fetchCurrentFacility: Function0<Facility> = Function0 { facility },
+      updatePatientRecordedEffect: Function2<UUID, Instant, Unit> = Function2 { _, _ -> }
   ) {
     when (openAs) {
       is New -> sheetCreatedForNew(
           patientUuid = openAs.patientUuid,
           fetchCurrentUser = fetchCurrentUser,
-          fetchCurrentFacility = fetchCurrentFacility
+          fetchCurrentFacility = fetchCurrentFacility,
+          updatePatientRecordedEffect = updatePatientRecordedEffect
       )
       is Update -> sheetCreatedForUpdate(
           existingBpUuid = openAs.bpUuid,
           fetchCurrentUser = fetchCurrentUser,
-          fetchCurrentFacility = fetchCurrentFacility
+          fetchCurrentFacility = fetchCurrentFacility,
+          updatePatientRecordedEffect = updatePatientRecordedEffect
       )
       else -> throw IllegalStateException("Unknown `openAs`: $openAs")
     }
@@ -1062,17 +1070,18 @@ class BloodPressureEntrySheetLogicTest {
   private fun instantiateFixture(
       openAs: OpenAs,
       fetchCurrentUser: Function0<User>,
-      fetchCurrentFacility: Function0<Facility>
+      fetchCurrentFacility: Function0<Facility>,
+      updatePatientRecordedEffect: Function2<UUID, Instant, Unit>
   ) {
     val effectHandler = BloodPressureEntryEffectHandler(
         ui = ui,
-        patientRepository = patientRepository,
         bloodPressureRepository = bloodPressureRepository,
         appointmentsRepository = appointmentRepository,
         userClock = testUserClock,
         schedulersProvider = TrampolineSchedulersProvider(),
         fetchCurrentUser = fetchCurrentUser,
-        fetchCurrentFacility = fetchCurrentFacility
+        fetchCurrentFacility = fetchCurrentFacility,
+        updatePatientRecordedEffect = updatePatientRecordedEffect
     ).build()
 
     fixture = MobiusTestFixture(
