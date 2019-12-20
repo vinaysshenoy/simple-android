@@ -5,6 +5,8 @@ import dagger.Provides
 import org.simple.clinic.facility.Facility
 import org.simple.clinic.functions.CachedFunction0.cached
 import org.simple.clinic.functions.Function0
+import org.simple.clinic.functions.SynchronisedFunction0
+import org.simple.clinic.functions.SynchronisedFunction0.*
 import org.simple.clinic.user.LoggedInUserFacilityMapping
 import org.simple.clinic.user.User
 
@@ -20,7 +22,7 @@ class BloodPressureEntryEffectHandlerDependencies {
       user
     }
 
-    return cached(supplier)
+    return synchronised(cached(supplier))
   }
 
   @Provides
@@ -31,6 +33,6 @@ class BloodPressureEntryEffectHandlerDependencies {
       facilityMapping.currentFacilityImmediate(user.uuid)
     }
 
-    return cached(supplier)
+    return synchronised(cached(supplier))
   }
 }
