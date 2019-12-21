@@ -111,9 +111,10 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
   private fun fetchBloodPressureMeasurement(
       scheduler: Scheduler
   ): ObservableTransformer<FetchBloodPressureMeasurement, BloodPressureEntryEvent> {
-    return ObservableTransformer { bloodPressureMeasurements ->
-      bloodPressureMeasurements
-          .flatMapSingle { getExistingBloodPressureMeasurement(it.bpUuid).subscribeOn(scheduler) }
+    return ObservableTransformer { fetchBloodPressureMeasurement ->
+      fetchBloodPressureMeasurement
+          .observeOn(scheduler)
+          .map { fetchExistingBloodPressureMeasurement.call(it.bpUuid) }
           .map { BloodPressureMeasurementFetched(it.systolic, it.diastolic, it.recordedAt) }
     }
   }
@@ -153,7 +154,7 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
       createNewBpEntries
           .flatMapSingle { createNewBpEntry ->
             storeNewBloodPressureMeasurement(createNewBpEntry)
-                .flatMap { updateAppointmentsAsVisited(createNewBpEntry, it) }
+                .map { updateAppointmentsAsVisited(createNewBpEntry, it) }
           }
           .compose(reportAnalyticsEvents)
           .cast()
@@ -163,23 +164,22 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
   private fun updateAppointmentsAsVisited(
       createNewBpEntry: CreateNewBpEntry,
       bloodPressureMeasurement: BloodPressureMeasurement
-  ): Single<BloodPressureSaved> {
-    return Single.fromCallable {
-      markAppointmentsCreatedBeforeTodayAsVisitedEffect.call(bloodPressureMeasurement.patientUuid)
+  ): BloodPressureSaved {
+    markAppointmentsCreatedBeforeTodayAsVisitedEffect.call(bloodPressureMeasurement.patientUuid)
 
-      val entryDate = createNewBpEntry.userEnteredDate.toUtcInstant(userClock)
-      updatePatientRecordedEffect.call(bloodPressureMeasurement.patientUuid, entryDate)
+    val entryDate = createNewBpEntry.userEnteredDate.toUtcInstant(userClock)
+    updatePatientRecordedEffect.call(bloodPressureMeasurement.patientUuid, entryDate)
 
-      BloodPressureSaved(createNewBpEntry.wasDateChanged)
-    }
+    return BloodPressureSaved(createNewBpEntry.wasDateChanged)
   }
 
   private fun updateBpEntryTransformer(): ObservableTransformer<UpdateBpEntry, BloodPressureEntryEvent> {
     return ObservableTransformer { updateBpEntries ->
       updateBpEntries
-          .flatMapSingle { updateBpEntry ->
-            getUpdatedBloodPressureMeasurement(updateBpEntry)
-                .map { bloodPressureMeasurement -> bloodPressureMeasurement to updateBpEntry.wasDateChanged }
+          .map { updateBpEntry ->
+            val existingMeasurement = fetchExistingBloodPressureMeasurement.call(updateBpEntry.bpUuid)
+            val updatedMeasurement = updateBloodPressureMeasurementValues(existingMeasurement, updateBpEntry)
+            updatedMeasurement to updateBpEntry.wasDateChanged
           }
           .flatMapSingle { (bloodPressureMeasurement, wasDateChanged) ->
             storeUpdateBloodPressureMeasurement(bloodPressureMeasurement)
@@ -188,13 +188,6 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
           .compose(reportAnalyticsEvents)
           .cast()
     }
-  }
-
-  private fun getUpdatedBloodPressureMeasurement(
-      updateBpEntry: UpdateBpEntry
-  ): Single<BloodPressureMeasurement> {
-    return getExistingBloodPressureMeasurement(updateBpEntry.bpUuid)
-        .map { existingBloodPressureMeasurement -> updateBloodPressureMeasurementValues(existingBloodPressureMeasurement, updateBpEntry) }
   }
 
   private fun storeUpdateBloodPressureMeasurement(
@@ -227,9 +220,5 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
     val currentFacility = fetchCurrentFacility.call()
     val (patientUuid, systolic, diastolic, date) = entry
     return bloodPressureRepository.saveMeasurement(patientUuid, systolic, diastolic, user, currentFacility, date.toUtcInstant(userClock))
-  }
-
-  private fun getExistingBloodPressureMeasurement(bpUuid: UUID): Single<BloodPressureMeasurement> {
-    return Single.fromCallable { fetchExistingBloodPressureMeasurement.call(bpUuid) }
   }
 }
