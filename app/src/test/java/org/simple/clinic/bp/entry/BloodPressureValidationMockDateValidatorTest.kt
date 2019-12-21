@@ -60,6 +60,7 @@ class BloodPressureValidationMockDateValidatorTest {
 
   private val facility = PatientMocker.facility(uuid = UUID.fromString("2a70f82e-92c6-4fce-b60e-6f083a8e725b"))
   private val existingBpUuid = UUID.fromString("2c4eccbb-d1bc-4c7c-b1ec-60a13acfeea4")
+  private val bp = PatientMocker.bp(uuid = existingBpUuid, userUuid = user.uuid, patientUuid = patientUuid, facilityUuid = facility.uuid)
 
   private val uiRenderer = BloodPressureEntryUiRenderer(ui)
   private lateinit var fixture: MobiusTestFixture<BloodPressureEntryModel, BloodPressureEntryEvent, BloodPressureEntryEffect>
@@ -180,7 +181,8 @@ class BloodPressureValidationMockDateValidatorTest {
         fetchCurrentUser = Function0 { user },
         fetchCurrentFacility = Function0 { facility },
         updatePatientRecordedEffect = Function2 { _, _ -> },
-        markAppointmentsCreatedBeforeTodayAsVisitedEffect = Function1 { }
+        markAppointmentsCreatedBeforeTodayAsVisitedEffect = Function1 { },
+        fetchExistingBloodPressureMeasurement = Function1 { bp }
     ).build()
 
     fixture = MobiusTestFixture(

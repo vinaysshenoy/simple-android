@@ -33,7 +33,6 @@ import org.simple.clinic.bp.entry.OpenAs.Update
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
-import org.simple.clinic.overdue.AppointmentRepository
 import org.simple.clinic.patient.PatientMocker
 import org.simple.clinic.util.RxErrorsRule
 import org.simple.clinic.util.TestUserClock
@@ -66,6 +65,13 @@ class BloodPressureValidationTest {
   private val user = PatientMocker.loggedInUser(uuid = UUID.fromString("1367a583-12b1-48c6-ae9d-fb34f9aac449"))
 
   private val facility = PatientMocker.facility(uuid = UUID.fromString("2a70f82e-92c6-4fce-b60e-6f083a8e725b"))
+
+  private val bp = PatientMocker.bp(
+      uuid = UUID.fromString("3650a765-353a-4f8b-bdc1-4a24e9093d2a"),
+      patientUuid = patientUuid,
+      userUuid = user.uuid,
+      facilityUuid = facility.uuid
+  )
 
   private val uiRenderer = BloodPressureEntryUiRenderer(ui)
   private lateinit var fixture: MobiusTestFixture<BloodPressureEntryModel, BloodPressureEntryEvent, BloodPressureEntryEffect>
@@ -197,7 +203,8 @@ class BloodPressureValidationTest {
         fetchCurrentUser = Function0 { user },
         fetchCurrentFacility = Function0 { facility },
         updatePatientRecordedEffect = Function2 { _, _ -> },
-        markAppointmentsCreatedBeforeTodayAsVisitedEffect = Function1 {  }
+        markAppointmentsCreatedBeforeTodayAsVisitedEffect = Function1 { },
+        fetchExistingBloodPressureMeasurement = Function1 { bp }
     ).build()
 
     fixture = MobiusTestFixture(

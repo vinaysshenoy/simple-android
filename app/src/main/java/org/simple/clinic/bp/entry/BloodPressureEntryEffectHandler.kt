@@ -47,7 +47,8 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
     private val fetchCurrentUser: Function0<User>,
     private val fetchCurrentFacility: Function0<Facility>,
     private val updatePatientRecordedEffect: Function2<UUID, Instant, Unit>,
-    private val markAppointmentsCreatedBeforeTodayAsVisitedEffect: Function1<UUID, Unit>
+    private val markAppointmentsCreatedBeforeTodayAsVisitedEffect: Function1<UUID, Unit>,
+    private val fetchExistingBloodPressureMeasurement: Function1<UUID, BloodPressureMeasurement>
 ) {
 
   @AssistedInject.Factory
@@ -228,6 +229,7 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
     return bloodPressureRepository.saveMeasurement(patientUuid, systolic, diastolic, user, currentFacility, date.toUtcInstant(userClock))
   }
 
-  private fun getExistingBloodPressureMeasurement(bpUuid: UUID): Single<BloodPressureMeasurement> =
-      bloodPressureRepository.measurement(bpUuid).firstOrError()
+  private fun getExistingBloodPressureMeasurement(bpUuid: UUID): Single<BloodPressureMeasurement> {
+    return Single.fromCallable { fetchExistingBloodPressureMeasurement.call(bpUuid) }
+  }
 }

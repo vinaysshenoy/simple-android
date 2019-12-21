@@ -2,6 +2,8 @@ package org.simple.clinic.bp.entry
 
 import dagger.Module
 import dagger.Provides
+import org.simple.clinic.bp.BloodPressureMeasurement
+import org.simple.clinic.bp.BloodPressureRepository
 import org.simple.clinic.facility.Facility
 import org.simple.clinic.functions.CachedFunction0.cached
 import org.simple.clinic.functions.Function0
@@ -49,5 +51,10 @@ class BloodPressureEntryEffectHandlerDependencies {
   @Provides
   fun bindMarkAppointmentsCreatedBeforeTodayAsVisitedEffect(appointmentRepository: AppointmentRepository): Function1<UUID, Unit> {
     return Function1 { appointmentRepository.markAppointmentsCreatedBeforeTodayAsVisited(it).blockingAwait() }
+  }
+
+  @Provides
+  fun bindFetchExistingBloodPressureMeasurement(bloodPressureRepository: BloodPressureRepository): Function1<UUID, BloodPressureMeasurement> {
+    return Function1 { bloodPressureRepository.measurement(it).blockingFirst() }
   }
 }
