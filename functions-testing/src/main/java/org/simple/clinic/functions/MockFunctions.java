@@ -4,6 +4,7 @@ import org.simple.clinic.functions.mocks.MockFunction0;
 import org.simple.clinic.functions.mocks.MockFunction1;
 import org.simple.clinic.functions.mocks.MockFunction2;
 import org.simple.clinic.functions.mocks.MockFunction3;
+import org.simple.clinic.functions.mocks.MockFunction4;
 
 public class MockFunctions {
 
@@ -39,5 +40,13 @@ public class MockFunctions {
 
   public static <P1, P2, P3, R> MockFunction3<P1, P2, P3, R> function3(R value) {
     return new MockFunction3<>((p1, p2, p3) -> value);
+  }
+
+  public static <P1, P2, P3, P4, R> MockFunction4<P1, P2, P3, P4, R> function4(Function4<P1, P2, P3, P4, R> function4) {
+    return new MockFunction4<>(function4);
+  }
+
+  public static <P1, P2, P3, P4, R> MockFunction4<P1, P2, P3, P4, R> function4(R value) {
+    return new MockFunction4<>((p1, p2, p3, p4) -> value);
   }
 }
