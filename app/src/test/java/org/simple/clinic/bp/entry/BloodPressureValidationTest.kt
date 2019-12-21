@@ -1,13 +1,9 @@
 package org.simple.clinic.bp.entry
 
 import com.google.common.truth.Truth.assertThat
-import com.nhaarman.mockito_kotlin.any
-import com.nhaarman.mockito_kotlin.doReturn
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.never
 import com.nhaarman.mockito_kotlin.verify
-import com.nhaarman.mockito_kotlin.whenever
-import io.reactivex.Observable
 import io.reactivex.plugins.RxJavaPlugins
 import io.reactivex.rxkotlin.ofType
 import io.reactivex.schedulers.Schedulers
@@ -18,7 +14,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.simple.clinic.bp.BloodPressureRepository
+import org.simple.clinic.bp.BloodPressureMeasurement
 import org.simple.clinic.bp.entry.BloodPressureEntrySheet.ScreenType.BP_ENTRY
 import org.simple.clinic.bp.entry.BpValidator.Validation
 import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorDiastolicEmpty
@@ -34,6 +30,7 @@ import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
 import org.simple.clinic.functions.Function4
+import org.simple.clinic.functions.MockFunctions
 import org.simple.clinic.patient.PatientMocker
 import org.simple.clinic.util.RxErrorsRule
 import org.simple.clinic.util.TestUserClock
@@ -42,6 +39,7 @@ import org.simple.clinic.util.scheduler.TrampolineSchedulersProvider
 import org.simple.clinic.widgets.UiEvent
 import org.simple.clinic.widgets.ageanddateofbirth.UserInputDateValidator
 import org.simple.mobius.migration.MobiusTestFixture
+import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import org.threeten.bp.ZoneOffset.UTC
 import org.threeten.bp.format.DateTimeFormatter
@@ -55,7 +53,6 @@ class BloodPressureValidationTest {
   val rxErrorsRule = RxErrorsRule()
 
   private val ui = mock<BloodPressureEntryUi>()
-  private val bloodPressureRepository = mock<BloodPressureRepository>()
   private val testUserClock = TestUserClock()
   private val dateValidator = UserInputDateValidator(testUserClock, DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ENGLISH))
   private val bpValidator = BpValidator()
@@ -88,19 +85,22 @@ class BloodPressureValidationTest {
       testParams: ValidationErrorsAndUiChangesTestParams
   ) {
     val (systolic, diastolic, error, uiChangeVerification) = testParams
+    val recordNewMeasurementEffect = MockFunctions.function4<UUID, Int, Int, Instant, BloodPressureMeasurement>(bp)
+    val updateMeasurementEffect = MockFunctions.function1<BloodPressureMeasurement, Unit>(Unit)
 
     // This assertion is not necessary, it was added to stabilize this test for refactoring.
     assertThat(bpValidator.validate(systolic, diastolic))
         .isEqualTo(error)
 
-    sheetCreatedForNew(patientUuid)
+
+    sheetCreatedForNew(patientUuid, recordNewMeasurementEffect, updateMeasurementEffect)
     uiEvents.onNext(ScreenChanged(BP_ENTRY))
     uiEvents.onNext(SystolicChanged(systolic))
     uiEvents.onNext(DiastolicChanged(diastolic))
     uiEvents.onNext(SaveClicked)
 
-    verify(bloodPressureRepository, never()).saveMeasurement(any(), any(), any(), any(), any(), any())
-    verify(bloodPressureRepository, never()).updateMeasurement(any())
+    recordNewMeasurementEffect.invocations.assertNeverCalled()
+    updateMeasurementEffect.invocations.assertNeverCalled()
 
     uiChangeVerification(ui)
   }
@@ -135,8 +135,6 @@ class BloodPressureValidationTest {
     // This assertion is not necessary, it was added to stabilize this test for refactoring.
     assertThat(bpValidator.validate(systolic, diastolic))
         .isEqualTo(error)
-
-    whenever(bloodPressureRepository.measurement(any())).doReturn(Observable.never())
 
     sheetCreated(openAs)
     uiEvents.run {
@@ -177,28 +175,73 @@ class BloodPressureValidationTest {
       val error: Validation
   )
 
-  private fun sheetCreatedForNew(patientUuid: UUID) {
+  private fun sheetCreatedForNew(
+      patientUuid: UUID,
+      recordNewMeasurementEffect: Function4<UUID, Int, Int, Instant, BloodPressureMeasurement> = Function4 { patientUuid, systolic, diastolic, timestamp ->
+        PatientMocker.bp(
+            uuid = UUID.fromString("1c70ee9c-a5da-49ec-adf4-9259993ec56d"),
+            patientUuid = patientUuid,
+            facilityUuid = facility.uuid,
+            userUuid = user.uuid,
+            recordedAt = timestamp,
+            systolic = systolic,
+            diastolic = diastolic
+        )
+      },
+      updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit> = Function1 { }
+  ) {
     val openAsNew = New(patientUuid)
-    instantiateFixture(openAsNew)
+    instantiateFixture(openAsNew, recordNewMeasurementEffect, updateMeasurementEffect)
   }
 
-  private fun sheetCreatedForUpdate(existingBpUuid: UUID) {
+  private fun sheetCreatedForUpdate(
+      existingBpUuid: UUID,
+      recordNewMeasurementEffect: Function4<UUID, Int, Int, Instant, BloodPressureMeasurement> = Function4 { patientUuid, systolic, diastolic, timestamp ->
+        PatientMocker.bp(
+            uuid = UUID.fromString("1c70ee9c-a5da-49ec-adf4-9259993ec56d"),
+            patientUuid = patientUuid,
+            facilityUuid = facility.uuid,
+            userUuid = user.uuid,
+            recordedAt = timestamp,
+            systolic = systolic,
+            diastolic = diastolic
+        )
+      },
+      updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit> = Function1 { }
+  ) {
     val openAsUpdate = Update(existingBpUuid)
-    instantiateFixture(openAsUpdate)
+    instantiateFixture(openAsUpdate, recordNewMeasurementEffect, updateMeasurementEffect)
   }
 
-  private fun sheetCreated(openAs: OpenAs) {
+  private fun sheetCreated(
+      openAs: OpenAs,
+      recordNewMeasurementEffect: Function4<UUID, Int, Int, Instant, BloodPressureMeasurement> = Function4 { patientUuid, systolic, diastolic, timestamp ->
+        PatientMocker.bp(
+            uuid = UUID.fromString("1c70ee9c-a5da-49ec-adf4-9259993ec56d"),
+            patientUuid = patientUuid,
+            facilityUuid = facility.uuid,
+            userUuid = user.uuid,
+            recordedAt = timestamp,
+            systolic = systolic,
+            diastolic = diastolic
+        )
+      },
+      updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit> = Function1 { }
+  ) {
     when (openAs) {
-      is New -> sheetCreatedForNew(openAs.patientUuid)
-      is Update -> sheetCreatedForUpdate(openAs.bpUuid)
+      is New -> sheetCreatedForNew(openAs.patientUuid, recordNewMeasurementEffect, updateMeasurementEffect)
+      is Update -> sheetCreatedForUpdate(openAs.bpUuid, recordNewMeasurementEffect, updateMeasurementEffect)
       else -> throw IllegalStateException("Unknown `openAs`: $openAs")
     }
   }
 
-  private fun instantiateFixture(openAs: OpenAs) {
+  private fun instantiateFixture(
+      openAs: OpenAs,
+      recordNewMeasurementEffect: Function4<UUID, Int, Int, Instant, BloodPressureMeasurement>,
+      updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit>
+  ) {
     val effectHandler = BloodPressureEntryEffectHandler(
         ui = ui,
-        bloodPressureRepository = bloodPressureRepository,
         userClock = testUserClock,
         schedulersProvider = TrampolineSchedulersProvider(),
         fetchCurrentUser = Function0 { user },
@@ -206,17 +249,8 @@ class BloodPressureValidationTest {
         updatePatientRecordedEffect = Function2 { _, _ -> },
         markAppointmentsCreatedBeforeTodayAsVisitedEffect = Function1 { },
         fetchExistingBloodPressureMeasurement = Function1 { bp },
-        recordNewMeasurementEffect = Function4 { patientUuid, systolic, diastolic, timestamp ->
-          PatientMocker.bp(
-              uuid = UUID.fromString("1c70ee9c-a5da-49ec-adf4-9259993ec56d"),
-              patientUuid = patientUuid,
-              facilityUuid = facility.uuid,
-              userUuid = user.uuid,
-              recordedAt = timestamp,
-              systolic = systolic,
-              diastolic = diastolic
-          )
-        }
+        recordNewMeasurementEffect = recordNewMeasurementEffect,
+        updateMeasurementEffect = updateMeasurementEffect
 
     ).build()
 

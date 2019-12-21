@@ -9,7 +9,6 @@ import io.reactivex.Scheduler
 import io.reactivex.rxkotlin.cast
 import org.simple.clinic.ReportAnalyticsEvents
 import org.simple.clinic.bp.BloodPressureMeasurement
-import org.simple.clinic.bp.BloodPressureRepository
 import org.simple.clinic.bp.entry.BpValidator.Validation
 import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorDiastolicEmpty
 import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorDiastolicTooHigh
@@ -41,7 +40,6 @@ import java.util.UUID
 
 class BloodPressureEntryEffectHandler @AssistedInject constructor(
     @Assisted private val ui: BloodPressureEntryUi,
-    private val bloodPressureRepository: BloodPressureRepository,
     private val userClock: UserClock,
     private val schedulersProvider: SchedulersProvider,
     private val fetchCurrentUser: Function0<User>,
@@ -49,7 +47,8 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
     private val updatePatientRecordedEffect: Function2<UUID, Instant, Unit>,
     private val markAppointmentsCreatedBeforeTodayAsVisitedEffect: Function1<UUID, Unit>,
     private val fetchExistingBloodPressureMeasurement: Function1<UUID, BloodPressureMeasurement>,
-    private val recordNewMeasurementEffect: Function4<UUID, Int, Int, Instant, BloodPressureMeasurement>
+    private val recordNewMeasurementEffect: Function4<UUID, Int, Int, Instant, BloodPressureMeasurement>,
+    private val updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit>
 ) {
 
   @AssistedInject.Factory
@@ -195,8 +194,7 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
   private fun storeUpdateBloodPressureMeasurement(
       bloodPressureMeasurement: BloodPressureMeasurement
   ): Completable {
-    return bloodPressureRepository
-        .updateMeasurement(bloodPressureMeasurement)
+    return Completable.fromAction { updateMeasurementEffect.call(bloodPressureMeasurement) }
         .doOnComplete { updatePatientRecordedEffect.call(bloodPressureMeasurement.patientUuid, bloodPressureMeasurement.recordedAt) }
   }
 

@@ -76,4 +76,9 @@ class BloodPressureEntryEffectHandlerDependencies {
       ).blockingGet()
     }
   }
+
+  @Provides
+  fun bind_updateMeasurementEffect(repository: BloodPressureRepository): Function1<BloodPressureMeasurement, Unit> {
+    return Function1 { repository.updateMeasurement(it).blockingAwait() }
+  }
 }

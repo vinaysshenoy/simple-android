@@ -27,7 +27,6 @@ class BloodPressureEntryEffectHandlerTest {
 
   private val effectHandler = BloodPressureEntryEffectHandler(
       ui = ui,
-      bloodPressureRepository = mock(),
       userClock = userClock,
       schedulersProvider = TrampolineSchedulersProvider(),
       fetchCurrentUser = Function0 { PatientMocker.loggedInUser(uuid = userUuid) },
@@ -35,7 +34,8 @@ class BloodPressureEntryEffectHandlerTest {
       updatePatientRecordedEffect = Function2 { _, _ -> },
       markAppointmentsCreatedBeforeTodayAsVisitedEffect = Function1 { },
       fetchExistingBloodPressureMeasurement = Function1 { PatientMocker.bp(uuid = existingBpUuid, patientUuid = patientUuid, facilityUuid = facilityUuid, userUuid = userUuid) },
-      recordNewMeasurementEffect = Function4 { _, _, _, _ -> PatientMocker.bp(uuid = newBpUuid, patientUuid = patientUuid, facilityUuid = facilityUuid, userUuid = userUuid) }
+      recordNewMeasurementEffect = Function4 { _, _, _, _ -> PatientMocker.bp(uuid = newBpUuid, patientUuid = patientUuid, facilityUuid = facilityUuid, userUuid = userUuid) },
+      updateMeasurementEffect = Function1 {  }
   ).build()
   private val testCase = EffectHandlerTestCase(effectHandler)
 
