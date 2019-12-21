@@ -6,7 +6,6 @@ import com.squareup.inject.assisted.AssistedInject
 import io.reactivex.Completable
 import io.reactivex.ObservableTransformer
 import io.reactivex.Scheduler
-import io.reactivex.Single
 import io.reactivex.rxkotlin.cast
 import org.simple.clinic.ReportAnalyticsEvents
 import org.simple.clinic.bp.BloodPressureMeasurement
@@ -25,6 +24,7 @@ import org.simple.clinic.facility.Facility
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
+import org.simple.clinic.functions.Function4
 import org.simple.clinic.user.User
 import org.simple.clinic.util.UserClock
 import org.simple.clinic.util.exhaustive
@@ -48,7 +48,8 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
     private val fetchCurrentFacility: Function0<Facility>,
     private val updatePatientRecordedEffect: Function2<UUID, Instant, Unit>,
     private val markAppointmentsCreatedBeforeTodayAsVisitedEffect: Function1<UUID, Unit>,
-    private val fetchExistingBloodPressureMeasurement: Function1<UUID, BloodPressureMeasurement>
+    private val fetchExistingBloodPressureMeasurement: Function1<UUID, BloodPressureMeasurement>,
+    private val recordNewMeasurementEffect: Function4<UUID, Int, Int, Instant, BloodPressureMeasurement>
 ) {
 
   @AssistedInject.Factory
@@ -152,9 +153,10 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
   private fun createNewBpEntryTransformer(): ObservableTransformer<CreateNewBpEntry, BloodPressureEntryEvent> {
     return ObservableTransformer { createNewBpEntries ->
       createNewBpEntries
-          .flatMapSingle { createNewBpEntry ->
-            storeNewBloodPressureMeasurement(createNewBpEntry)
-                .map { updateAppointmentsAsVisited(createNewBpEntry, it) }
+          .map { createNewBpEntry ->
+            val (patientUuid, systolic, diastolic, date) = createNewBpEntry
+            val recordedBp = recordNewMeasurementEffect.call(patientUuid, systolic, diastolic, date.toUtcInstant(userClock))
+            updateAppointmentsAsVisited(createNewBpEntry, recordedBp)
           }
           .compose(reportAnalyticsEvents)
           .cast()
@@ -215,10 +217,4 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
     )
   }
 
-  private fun storeNewBloodPressureMeasurement(entry: CreateNewBpEntry): Single<BloodPressureMeasurement> {
-    val user = fetchCurrentUser.call()
-    val currentFacility = fetchCurrentFacility.call()
-    val (patientUuid, systolic, diastolic, date) = entry
-    return bloodPressureRepository.saveMeasurement(patientUuid, systolic, diastolic, user, currentFacility, date.toUtcInstant(userClock))
-  }
 }

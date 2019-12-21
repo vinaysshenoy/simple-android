@@ -7,6 +7,7 @@ import org.junit.Test
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
+import org.simple.clinic.functions.Function4
 import org.simple.clinic.mobius.EffectHandlerTestCase
 import org.simple.clinic.patient.PatientMocker
 import org.simple.clinic.util.TestUserClock
@@ -20,7 +21,8 @@ class BloodPressureEntryEffectHandlerTest {
   private val userClock = TestUserClock()
   private val userUuid = UUID.fromString("1080d084-9835-4d9c-a279-327c2d52577a")
   private val facilityUuid = UUID.fromString("4ac91d66-b805-4342-8f0b-94cdbb6ae5ae")
-  private val bpUuid = UUID.fromString("93f40be0-01c1-4139-98fb-0818132ff184")
+  private val existingBpUuid = UUID.fromString("93f40be0-01c1-4139-98fb-0818132ff184")
+  private val newBpUuid = UUID.fromString("ce38fb46-3a30-4d2a-baed-a9295350c481")
   private val patientUuid = UUID.fromString("a619a655-544b-4eec-80c9-0a5efc264ec1")
 
   private val effectHandler = BloodPressureEntryEffectHandler(
@@ -30,9 +32,10 @@ class BloodPressureEntryEffectHandlerTest {
       schedulersProvider = TrampolineSchedulersProvider(),
       fetchCurrentUser = Function0 { PatientMocker.loggedInUser(uuid = userUuid) },
       fetchCurrentFacility = Function0 { PatientMocker.facility(uuid = facilityUuid) },
-      updatePatientRecordedEffect = Function2 { _, _ ->  },
-      markAppointmentsCreatedBeforeTodayAsVisitedEffect = Function1 {  },
-      fetchExistingBloodPressureMeasurement = Function1 { PatientMocker.bp(uuid = bpUuid, patientUuid = patientUuid, facilityUuid = facilityUuid) }
+      updatePatientRecordedEffect = Function2 { _, _ -> },
+      markAppointmentsCreatedBeforeTodayAsVisitedEffect = Function1 { },
+      fetchExistingBloodPressureMeasurement = Function1 { PatientMocker.bp(uuid = existingBpUuid, patientUuid = patientUuid, facilityUuid = facilityUuid, userUuid = userUuid) },
+      recordNewMeasurementEffect = Function4 { _, _, _, _ -> PatientMocker.bp(uuid = newBpUuid, patientUuid = patientUuid, facilityUuid = facilityUuid, userUuid = userUuid) }
   ).build()
   private val testCase = EffectHandlerTestCase(effectHandler)
 

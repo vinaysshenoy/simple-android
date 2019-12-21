@@ -24,6 +24,7 @@ import org.simple.clinic.bp.entry.OpenAs.Update
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
+import org.simple.clinic.functions.Function4
 import org.simple.clinic.patient.PatientMocker
 import org.simple.clinic.util.RxErrorsRule
 import org.simple.clinic.util.TestUserClock
@@ -182,7 +183,19 @@ class BloodPressureValidationMockDateValidatorTest {
         fetchCurrentFacility = Function0 { facility },
         updatePatientRecordedEffect = Function2 { _, _ -> },
         markAppointmentsCreatedBeforeTodayAsVisitedEffect = Function1 { },
-        fetchExistingBloodPressureMeasurement = Function1 { bp }
+        fetchExistingBloodPressureMeasurement = Function1 { bp },
+        recordNewMeasurementEffect = Function4 { patientUuid, systolic, diastolic, timestamp ->
+          PatientMocker.bp(
+              uuid = UUID.fromString("1c70ee9c-a5da-49ec-adf4-9259993ec56d"),
+              patientUuid = patientUuid,
+              facilityUuid = facility.uuid,
+              userUuid = user.uuid,
+              recordedAt = timestamp,
+              systolic = systolic,
+              diastolic = diastolic
+          )
+        }
+
     ).build()
 
     fixture = MobiusTestFixture(

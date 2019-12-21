@@ -7,7 +7,7 @@ public class MockFunction4<P1, P2, P3, P4, R> implements Function4<P1, P2, P3, P
 
   private final Function4<P1, P2, P3, P4, R> function4;
 
-  private final InvocationsRecorder invocations = new InvocationsRecorder();
+  public final InvocationsRecorder invocations = new InvocationsRecorder();
 
   public MockFunction4(Function4<P1, P2, P3, P4, R> function4) {
     this.function4 = function4;
