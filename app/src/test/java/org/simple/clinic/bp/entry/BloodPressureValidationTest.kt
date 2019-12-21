@@ -31,6 +31,7 @@ import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorSystolicTooLow
 import org.simple.clinic.bp.entry.OpenAs.New
 import org.simple.clinic.bp.entry.OpenAs.Update
 import org.simple.clinic.functions.Function0
+import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
 import org.simple.clinic.overdue.AppointmentRepository
 import org.simple.clinic.patient.PatientMocker
@@ -55,7 +56,6 @@ class BloodPressureValidationTest {
 
   private val ui = mock<BloodPressureEntryUi>()
   private val bloodPressureRepository = mock<BloodPressureRepository>()
-  private val appointmentRepository = mock<AppointmentRepository>()
   private val testUserClock = TestUserClock()
   private val dateValidator = UserInputDateValidator(testUserClock, DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ENGLISH))
   private val bpValidator = BpValidator()
@@ -192,12 +192,12 @@ class BloodPressureValidationTest {
     val effectHandler = BloodPressureEntryEffectHandler(
         ui = ui,
         bloodPressureRepository = bloodPressureRepository,
-        appointmentsRepository = appointmentRepository,
         userClock = testUserClock,
         schedulersProvider = TrampolineSchedulersProvider(),
         fetchCurrentUser = Function0 { user },
         fetchCurrentFacility = Function0 { facility },
-        updatePatientRecordedEffect = Function2 { _, _ -> }
+        updatePatientRecordedEffect = Function2 { _, _ -> },
+        markAppointmentsCreatedBeforeTodayAsVisitedEffect = Function1 {  }
     ).build()
 
     fixture = MobiusTestFixture(

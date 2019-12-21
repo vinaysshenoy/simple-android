@@ -22,10 +22,9 @@ import org.simple.clinic.bp.entry.BloodPressureEntrySheetLogicTest.InvalidDateTe
 import org.simple.clinic.bp.entry.OpenAs.New
 import org.simple.clinic.bp.entry.OpenAs.Update
 import org.simple.clinic.functions.Function0
+import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
-import org.simple.clinic.overdue.AppointmentRepository
 import org.simple.clinic.patient.PatientMocker
-import org.simple.clinic.patient.PatientRepository
 import org.simple.clinic.util.RxErrorsRule
 import org.simple.clinic.util.TestUserClock
 import org.simple.clinic.util.TestUtcClock
@@ -48,7 +47,6 @@ class BloodPressureValidationMockDateValidatorTest {
 
   private val ui = mock<BloodPressureEntryUi>()
   private val bloodPressureRepository = mock<BloodPressureRepository>()
-  private val appointmentRepository = mock<AppointmentRepository>()
   private val dateValidator = mock<UserInputDateValidator>()
   private val bpValidator = BpValidator()
 
@@ -177,12 +175,12 @@ class BloodPressureValidationMockDateValidatorTest {
     val effectHandler = BloodPressureEntryEffectHandler(
         ui = ui,
         bloodPressureRepository = bloodPressureRepository,
-        appointmentsRepository = appointmentRepository,
         userClock = testUserClock,
         schedulersProvider = TrampolineSchedulersProvider(),
         fetchCurrentUser = Function0 { user },
         fetchCurrentFacility = Function0 { facility },
-        updatePatientRecordedEffect = Function2 { _, _ ->  }
+        updatePatientRecordedEffect = Function2 { _, _ -> },
+        markAppointmentsCreatedBeforeTodayAsVisitedEffect = Function1 { }
     ).build()
 
     fixture = MobiusTestFixture(

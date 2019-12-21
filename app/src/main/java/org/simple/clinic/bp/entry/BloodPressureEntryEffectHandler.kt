@@ -23,8 +23,8 @@ import org.simple.clinic.bp.entry.BpValidator.Validation.Success
 import org.simple.clinic.bp.entry.PrefillDate.PrefillSpecificDate
 import org.simple.clinic.facility.Facility
 import org.simple.clinic.functions.Function0
+import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
-import org.simple.clinic.overdue.AppointmentRepository
 import org.simple.clinic.user.User
 import org.simple.clinic.util.UserClock
 import org.simple.clinic.util.exhaustive
@@ -42,12 +42,12 @@ import java.util.UUID
 class BloodPressureEntryEffectHandler @AssistedInject constructor(
     @Assisted private val ui: BloodPressureEntryUi,
     private val bloodPressureRepository: BloodPressureRepository,
-    private val appointmentsRepository: AppointmentRepository,
     private val userClock: UserClock,
     private val schedulersProvider: SchedulersProvider,
     private val fetchCurrentUser: Function0<User>,
     private val fetchCurrentFacility: Function0<Facility>,
-    private val updatePatientRecordedEffect: Function2<UUID, Instant, Unit>
+    private val updatePatientRecordedEffect: Function2<UUID, Instant, Unit>,
+    private val markAppointmentsCreatedBeforeTodayAsVisitedEffect: Function1<UUID, Unit>
 ) {
 
   @AssistedInject.Factory
@@ -163,14 +163,14 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
       createNewBpEntry: CreateNewBpEntry,
       bloodPressureMeasurement: BloodPressureMeasurement
   ): Single<BloodPressureSaved> {
-    return appointmentsRepository
-        .markAppointmentsCreatedBeforeTodayAsVisited(bloodPressureMeasurement.patientUuid)
-        .doOnComplete {
-          val entryDate = createNewBpEntry.userEnteredDate.toUtcInstant(userClock)
+    return Single.fromCallable {
+      markAppointmentsCreatedBeforeTodayAsVisitedEffect.call(bloodPressureMeasurement.patientUuid)
 
-          updatePatientRecordedEffect.call(bloodPressureMeasurement.patientUuid, entryDate)
-        }
-        .toSingleDefault(BloodPressureSaved(createNewBpEntry.wasDateChanged))
+      val entryDate = createNewBpEntry.userEnteredDate.toUtcInstant(userClock)
+      updatePatientRecordedEffect.call(bloodPressureMeasurement.patientUuid, entryDate)
+
+      BloodPressureSaved(createNewBpEntry.wasDateChanged)
+    }
   }
 
   private fun updateBpEntryTransformer(): ObservableTransformer<UpdateBpEntry, BloodPressureEntryEvent> {
