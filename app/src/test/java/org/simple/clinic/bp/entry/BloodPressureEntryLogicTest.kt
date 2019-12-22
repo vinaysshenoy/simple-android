@@ -47,6 +47,7 @@ import org.simple.clinic.util.toLocalDateAtZone
 import org.simple.clinic.util.toUtcInstant
 import org.simple.clinic.widgets.UiEvent
 import org.simple.clinic.widgets.ageanddateofbirth.UserInputDateValidator
+import org.simple.clinic.widgets.ageanddateofbirth.UserInputDateValidator.Result.Invalid.DateIsInFuture
 import org.simple.clinic.widgets.ageanddateofbirth.UserInputDateValidator.Result.Invalid.InvalidPattern
 import org.simple.mobius.migration.MobiusTestFixture
 import org.threeten.bp.Instant
@@ -285,17 +286,19 @@ class BloodPressureEntrySheetLogicTest {
   @Test
   @Parameters(method = "params for checking valid date input")
   fun `when save is clicked, date entry is active, but input is invalid then BP measurement should not be saved`(
-      openAs: OpenAs
+      params: DoNotSaveBpWithInvalidDateTestParams
   ) {
+    val (openAs, day, month, twoDigitYear, _, verifications) = params
+
     val recordNewMeasurementEffect = MockFunctions.function4<UUID, Int, Int, Instant, BloodPressureMeasurement>(PatientMocker.bp())
     val updateMeasurementEffect = MockFunctions.function1<BloodPressureMeasurement, Unit>(Unit)
 
     sheetCreated(openAs, recordNewMeasurementEffect = recordNewMeasurementEffect, updateMeasurementEffect = updateMeasurementEffect)
 
     uiEvents.onNext(ScreenChanged(DATE_ENTRY))
-    uiEvents.onNext(DayChanged("invalid"))
-    uiEvents.onNext(MonthChanged("4"))
-    uiEvents.onNext(YearChanged("9"))
+    uiEvents.onNext(DayChanged(day))
+    uiEvents.onNext(MonthChanged(month))
+    uiEvents.onNext(YearChanged(twoDigitYear))
     uiEvents.onNext(SaveClicked)
 
     when (openAs) {
@@ -304,15 +307,48 @@ class BloodPressureEntrySheetLogicTest {
       else -> throw AssertionError()
     }
 
+    verifications.invoke(ui)
     verify(ui, never()).setBpSavedResultAndFinish()
-    verify(ui).showInvalidDateError()
   }
 
   @Suppress("Unused")
-  private fun `params for checking valid date input`(): List<OpenAs> {
+  private fun `params for checking valid date input`(): List<DoNotSaveBpWithInvalidDateTestParams> {
     return listOf(
-        New(patientUuid),
-        Update(UUID.fromString("f6f27cad-8b82-461e-8b1e-e14c2ac63832"))
+        DoNotSaveBpWithInvalidDateTestParams(New(patientUuid), "invalid", "4", "9", InvalidPattern) { ui ->
+          verify(ui).showInvalidDateError()
+        },
+        DoNotSaveBpWithInvalidDateTestParams(Update(UUID.fromString("cd4c2957-19f5-4dbb-839e-17507649046f")), "invalid", "4", "9", InvalidPattern) { ui ->
+          verify(ui).showInvalidDateError()
+        },
+        DoNotSaveBpWithInvalidDateTestParams(New(patientUuid), "05", "04", "20", DateIsInFuture) { ui ->
+          verify(ui).showDateIsInFutureError()
+        },
+        DoNotSaveBpWithInvalidDateTestParams(Update(UUID.fromString("cd4c2957-19f5-4dbb-839e-17507649046f")), "05", "04", "20", DateIsInFuture) { ui ->
+          verify(ui).showDateIsInFutureError()
+        }
+    )
+  }
+
+  data class DoNotSaveBpWithInvalidDateTestParams(
+      val openAs: OpenAs,
+      val day: String,
+      val month: String,
+      val twoDigitYear: String,
+      val result: UserInputDateValidator.Result,
+      val verifications: (Ui) -> Unit
+  ) {
+    constructor(
+        openAs: OpenAs,
+        date: LocalDate,
+        result: UserInputDateValidator.Result,
+        verifications: (Ui) -> Unit
+    ) : this(
+        openAs,
+        day = date.dayOfMonth.toString(),
+        month = date.monthValue.toString(),
+        twoDigitYear = date.year.toString().substring(2),
+        result = result,
+        verifications = verifications
     )
   }
 
@@ -444,7 +480,10 @@ class BloodPressureEntrySheetLogicTest {
     val existingBpUuid = UUID.fromString("2c4eccbb-d1bc-4c7c-b1ec-60a13acfeea4")
     return listOf(
         InvalidDateTestParams(New(patientUuid), "-invalid-", "-invalid-", "-invalid-", InvalidPattern) { ui: Ui -> verify(ui).showInvalidDateError() },
-        InvalidDateTestParams(Update(existingBpUuid), "-invalid-", "-invalid-", "-invalid-", InvalidPattern) { ui: Ui -> verify(ui).showInvalidDateError() })
+        InvalidDateTestParams(Update(existingBpUuid), "-invalid-", "-invalid-", "-invalid-", InvalidPattern) { ui: Ui -> verify(ui).showInvalidDateError() },
+        InvalidDateTestParams(New(patientUuid), "01", "01", "2099", DateIsInFuture) { ui: Ui -> verify(ui).showDateIsInFutureError() },
+        InvalidDateTestParams(Update(existingBpUuid), "01", "01", "2099", DateIsInFuture) { ui: Ui -> verify(ui).showDateIsInFutureError() }
+    )
   }
 
   data class InvalidDateTestParams(
