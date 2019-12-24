@@ -79,6 +79,8 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
         .addTransformer(CreateNewBpEntry::class.java, createNewBpEntryTransformer())
         .addAction(SetBpSavedResultAndFinish::class.java, ui::setBpSavedResultAndFinish, schedulersProvider.ui())
         .addTransformer(UpdateBpEntry::class.java, updateBpEntryTransformer())
+        .addAction(ShowEmptySystolicError::class.java, ui::showSystolicEmptyError, schedulersProvider.ui())
+        .addAction(ShowEmptyDiastolicError::class.java, ui::showDiastolicEmptyError, schedulersProvider.ui())
         .build()
   }
 

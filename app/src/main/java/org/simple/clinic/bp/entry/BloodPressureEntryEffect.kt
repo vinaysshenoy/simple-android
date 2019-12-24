@@ -73,3 +73,6 @@ data class UpdateBpEntry(
   val wasDateChanged: Boolean
     get() = userEnteredDate != prefilledDate
 }
+
+object ShowEmptySystolicError: BloodPressureEntryEffect()
+object ShowEmptyDiastolicError: BloodPressureEntryEffect()

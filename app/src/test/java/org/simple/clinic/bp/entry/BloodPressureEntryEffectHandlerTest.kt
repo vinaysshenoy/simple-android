@@ -2,6 +2,7 @@ package org.simple.clinic.bp.entry
 
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.verify
+import com.nhaarman.mockito_kotlin.verifyNoMoreInteractions
 import org.junit.After
 import org.junit.Test
 import org.simple.clinic.functions.Function0
@@ -55,5 +56,27 @@ class BloodPressureEntryEffectHandlerTest {
     verify(ui).setDateOnInputFields("7", "6", "92")
     verify(ui).showDateOnDateButton(entryDate)
     testCase.assertOutgoingEvents(DatePrefilled(entryDate))
+  }
+
+  @Test
+  fun `when the show empty systolic error effect is dispatched, then show the empty systolic error message`() {
+    // when
+    testCase.dispatch(ShowEmptySystolicError)
+
+    // then
+    verify(ui).showSystolicEmptyError()
+    verifyNoMoreInteractions(ui)
+    testCase.assertNoOutgoingEvents()
+  }
+
+  @Test
+  fun `when the show empty diastolic error effect is dispatched, then show the empty diastolic error message`() {
+    // when
+    testCase.dispatch(ShowEmptyDiastolicError)
+
+    // then
+    verify(ui).showDiastolicEmptyError()
+    verifyNoMoreInteractions(ui)
+    testCase.assertNoOutgoingEvents()
   }
 }

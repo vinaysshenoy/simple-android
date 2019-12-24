@@ -4,7 +4,8 @@ import com.spotify.mobius.Next
 import com.spotify.mobius.Update
 import org.simple.clinic.bp.entry.BloodPressureEntrySheet.ScreenType.BP_ENTRY
 import org.simple.clinic.bp.entry.BloodPressureEntrySheet.ScreenType.DATE_ENTRY
-import org.simple.clinic.bp.entry.BpValidator.Validation
+import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorDiastolicEmpty
+import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorSystolicEmpty
 import org.simple.clinic.bp.entry.BpValidator.Validation.Success
 import org.simple.clinic.mobius.dispatch
 import org.simple.clinic.mobius.next
@@ -101,11 +102,11 @@ class BloodPressureEntryUpdate(
   private fun onBloodPressureDateClicked(
       model: BloodPressureEntryModel
   ): Next<BloodPressureEntryModel, BloodPressureEntryEffect> {
-    val result = bpValidator.validate(model.systolic, model.diastolic)
-    val effect = if (result is Success) {
-      ShowDateEntryScreen
-    } else {
-      ShowBpValidationError(result)
+    val effect = when (val result = bpValidator.validate(model.systolic, model.diastolic)) {
+      is Success -> ShowDateEntryScreen
+      is ErrorSystolicEmpty -> ShowEmptySystolicError
+      is ErrorDiastolicEmpty -> ShowEmptyDiastolicError
+      else -> ShowBpValidationError(result)
     }
     return dispatch(effect)
   }
@@ -115,13 +116,20 @@ class BloodPressureEntryUpdate(
   ): Next<BloodPressureEntryModel, BloodPressureEntryEffect> {
     val bpValidationResult = bpValidator.validate(model.systolic, model.diastolic)
     val dateValidationResult = dateValidator.validate(getDateText(model), dateInUserTimeZone)
-    val validationErrorEffects = getValidationErrorEffects(bpValidationResult, dateValidationResult)
 
-    return if (validationErrorEffects.isNotEmpty()) {
-      Next.dispatch(validationErrorEffects)
+    val validationErrorEffects = mutableSetOf<BloodPressureEntryEffect>()
+    if (bpValidationResult !is Success) {
+      validationErrorEffects.add(ShowBpValidationError(bpValidationResult))
+    }
+    if (dateValidationResult !is Valid) {
+      validationErrorEffects.add(ShowDateValidationError(dateValidationResult))
+    }
 
-    } else {
-      dispatch(getCreateOrUpdateEntryEffect(model, dateValidationResult))
+    return when {
+      bpValidationResult is ErrorSystolicEmpty && dateValidationResult is Valid -> dispatch(ShowEmptySystolicError)
+      bpValidationResult is ErrorDiastolicEmpty && dateValidationResult is Valid -> dispatch(ShowEmptyDiastolicError)
+      validationErrorEffects.isNotEmpty() -> Next.dispatch(validationErrorEffects.toSet())
+      else -> dispatch(getCreateOrUpdateEntryEffect(model, dateValidationResult))
     }
   }
 
@@ -150,22 +158,6 @@ class BloodPressureEntryUpdate(
       is OpenAs.New -> CreateNewBpEntry(openAs.patientUuid, systolic, diastolic, userEnteredDate, prefilledDate)
       is OpenAs.Update -> UpdateBpEntry(openAs.bpUuid, systolic, diastolic, userEnteredDate, prefilledDate)
     }
-  }
-
-  private fun getValidationErrorEffects(
-      bpValidationResult: Validation,
-      dateValidationResult: Result
-  ): Set<BloodPressureEntryEffect> {
-    val validationErrorEffects = mutableSetOf<BloodPressureEntryEffect>()
-
-    if (bpValidationResult !is Success) {
-      validationErrorEffects.add(ShowBpValidationError(bpValidationResult))
-    }
-
-    if (dateValidationResult !is Valid) {
-      validationErrorEffects.add(ShowDateValidationError(dateValidationResult))
-    }
-    return validationErrorEffects.toSet()
   }
 
   private fun getDateText(model: BloodPressureEntryModel) =
