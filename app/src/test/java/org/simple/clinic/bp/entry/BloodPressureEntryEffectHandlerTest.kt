@@ -8,7 +8,7 @@ import org.junit.Test
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
-import org.simple.clinic.functions.Function4
+import org.simple.clinic.functions.Function3
 import org.simple.clinic.mobius.EffectHandlerTestCase
 import org.simple.clinic.patient.PatientMocker
 import org.simple.clinic.util.TestUserClock
@@ -35,8 +35,8 @@ class BloodPressureEntryEffectHandlerTest {
       updatePatientRecordedEffect = Function2 { _, _ -> },
       markAppointmentsCreatedBeforeTodayAsVisitedEffect = Function1 { },
       fetchExistingBloodPressureMeasurement = Function1 { PatientMocker.bp(uuid = existingBpUuid, patientUuid = patientUuid, facilityUuid = facilityUuid, userUuid = userUuid) },
-      recordNewMeasurementEffect = Function4 { _, _, _, _ -> PatientMocker.bp(uuid = newBpUuid, patientUuid = patientUuid, facilityUuid = facilityUuid, userUuid = userUuid) },
-      updateMeasurementEffect = Function1 {  }
+      updateMeasurementEffect = Function1 {  },
+      recordNewMeasurementEffect = Function3 { _, _, _ -> PatientMocker.bp(uuid = newBpUuid, patientUuid = patientUuid, facilityUuid = facilityUuid, userUuid = userUuid) }
   ).build()
   private val testCase = EffectHandlerTestCase(effectHandler)
 

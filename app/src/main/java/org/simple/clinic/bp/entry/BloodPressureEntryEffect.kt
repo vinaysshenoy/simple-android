@@ -52,8 +52,7 @@ data class ShowDateValidationError(val result: UserInputDateValidator.Result) : 
 
 data class CreateNewBpEntry(
     val patientUuid: UUID,
-    val systolic: Int,
-    val diastolic: Int,
+    val reading: BpReading,
     val userEnteredDate: LocalDate,
     val prefilledDate: LocalDate
 ) : BloodPressureEntryEffect() {
@@ -74,5 +73,5 @@ data class UpdateBpEntry(
     get() = userEnteredDate != prefilledDate
 }
 
-object ShowEmptySystolicError: BloodPressureEntryEffect()
-object ShowEmptyDiastolicError: BloodPressureEntryEffect()
+object ShowEmptySystolicError : BloodPressureEntryEffect()
+object ShowEmptyDiastolicError : BloodPressureEntryEffect()

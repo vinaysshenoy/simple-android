@@ -19,7 +19,7 @@ import org.simple.clinic.facility.Facility
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
-import org.simple.clinic.functions.Function4
+import org.simple.clinic.functions.Function3
 import org.simple.clinic.user.User
 import org.simple.clinic.util.UserClock
 import org.simple.clinic.util.exhaustive
@@ -42,8 +42,8 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
     private val updatePatientRecordedEffect: Function2<UUID, Instant, Unit>,
     private val markAppointmentsCreatedBeforeTodayAsVisitedEffect: Function1<UUID, Unit>,
     private val fetchExistingBloodPressureMeasurement: Function1<UUID, BloodPressureMeasurement>,
-    private val recordNewMeasurementEffect: Function4<UUID, Int, Int, Instant, BloodPressureMeasurement>,
-    private val updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit>
+    private val updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit>,
+    private val recordNewMeasurementEffect: Function3<UUID, BpReading, Instant, BloodPressureMeasurement>
 ) {
 
   @AssistedInject.Factory
@@ -148,8 +148,8 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
     return ObservableTransformer { createNewBpEntries ->
       createNewBpEntries
           .map { createNewBpEntry ->
-            val (patientUuid, systolic, diastolic, date) = createNewBpEntry
-            val recordedBp = recordNewMeasurementEffect.call(patientUuid, systolic, diastolic, date.toUtcInstant(userClock))
+            val (patientUuid, reading, date) = createNewBpEntry
+            val recordedBp = recordNewMeasurementEffect.call(patientUuid, reading, date.toUtcInstant(userClock))
             updateAppointmentsAsVisited(createNewBpEntry, recordedBp)
           }
           .compose(reportAnalyticsEvents)

@@ -29,7 +29,7 @@ import org.simple.clinic.facility.Facility
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
-import org.simple.clinic.functions.Function4
+import org.simple.clinic.functions.Function3
 import org.simple.clinic.functions.MockFunctions
 import org.simple.clinic.patient.PatientMocker
 import org.simple.clinic.user.User
@@ -165,7 +165,7 @@ class BloodPressureEntrySheetLogicTest {
       systolic: String,
       diastolic: String
   ) {
-    val recordNewMeasurementEffect = MockFunctions.function4<UUID, Int, Int, Instant, BloodPressureMeasurement>(PatientMocker.bp())
+    val recordNewMeasurementEffect = MockFunctions.function3<UUID, BpReading, Instant, BloodPressureMeasurement>(bp)
 
     sheetCreatedForNew(patientUuid, recordNewMeasurementEffect = recordNewMeasurementEffect)
     uiEvents.onNext(SystolicChanged(systolic))
@@ -269,7 +269,7 @@ class BloodPressureEntrySheetLogicTest {
   ) {
     val (openAs, day, month, twoDigitYear, _, verifications) = params
 
-    val recordNewMeasurementEffect = MockFunctions.function4<UUID, Int, Int, Instant, BloodPressureMeasurement>(PatientMocker.bp())
+    val recordNewMeasurementEffect = MockFunctions.function3<UUID, BpReading, Instant, BloodPressureMeasurement>(bp)
     val updateMeasurementEffect = MockFunctions.function1<BloodPressureMeasurement, Unit>(Unit)
 
     sheetCreated(openAs, recordNewMeasurementEffect = recordNewMeasurementEffect, updateMeasurementEffect = updateMeasurementEffect)
@@ -334,7 +334,7 @@ class BloodPressureEntrySheetLogicTest {
   @Test
   fun `when save is clicked for a new BP, date entry is active and input is valid then a BP measurement should be saved`() {
     val inputDate = LocalDate.of(2000, 2, 13)
-    val recordNewMeasurementEffect = MockFunctions.function4<UUID, Int, Int, Instant, BloodPressureMeasurement>(PatientMocker.bp(patientUuid = patientUuid))
+    val recordNewMeasurementEffect = MockFunctions.function3<UUID, BpReading, Instant, BloodPressureMeasurement>(PatientMocker.bp(patientUuid = patientUuid))
     val updatePatientRecordedEffect = MockFunctions.function2<UUID, Instant, Unit>(Unit)
     val markAppointmentsCreatedBeforeTodayAsVisitedEffect = MockFunctions.function1<UUID, Unit>(Unit)
     val updateMeasurementEffect = MockFunctions.function1<BloodPressureMeasurement, Unit>(Unit)
@@ -343,8 +343,8 @@ class BloodPressureEntrySheetLogicTest {
         patientUuid = patientUuid,
         updatePatientRecordedEffect = updatePatientRecordedEffect,
         markAppointmentsCreatedBeforeTodayAsVisitedEffect = markAppointmentsCreatedBeforeTodayAsVisitedEffect,
-        recordNewMeasurementEffect = recordNewMeasurementEffect,
-        updateMeasurementEffect = updateMeasurementEffect
+        updateMeasurementEffect = updateMeasurementEffect,
+        recordNewMeasurementEffect = recordNewMeasurementEffect
     )
     uiEvents.run {
       onNext(ScreenChanged(BP_ENTRY))
@@ -362,7 +362,7 @@ class BloodPressureEntrySheetLogicTest {
 
     updateMeasurementEffect.invocations.assertNeverCalled()
     val entryDateAsInstant = inputDate.toUtcInstant(testUserClock)
-    recordNewMeasurementEffect.invocations.assertCalledWithParameters(patientUuid, 130, 110, entryDateAsInstant)
+    recordNewMeasurementEffect.invocations.assertCalledWithParameters(patientUuid, BpReading(130, 110), entryDateAsInstant)
     markAppointmentsCreatedBeforeTodayAsVisitedEffect.invocations.assertCalledWithParameters(patientUuid)
     updatePatientRecordedEffect.invocations.assertCalledWithParameters(patientUuid, entryDateAsInstant)
     verify(ui).setBpSavedResultAndFinish()
@@ -385,7 +385,7 @@ class BloodPressureEntrySheetLogicTest {
     val updateMeasurementEffect = MockFunctions.function1<BloodPressureMeasurement, Unit>(Unit)
     val updatePatientRecordedEffect = MockFunctions.function2<UUID, Instant, Unit>(Unit)
     val markAppointmentsCreatedBeforeTodayAsVisitedEffect = MockFunctions.function1<UUID, Unit>(Unit)
-    val recordNewMeasurementEffect = MockFunctions.function4<UUID, Int, Int, Instant, BloodPressureMeasurement>(PatientMocker.bp())
+    val recordNewMeasurementEffect = MockFunctions.function3<UUID, BpReading, Instant, BloodPressureMeasurement>(bp)
 
     sheetCreatedForUpdate(
         existingBpUuid = existingBp.uuid,
@@ -430,7 +430,7 @@ class BloodPressureEntrySheetLogicTest {
       testParams: InvalidDateTestParams
   ) {
     val (openAs, day, month, year, errorResult, uiChangeVerification) = testParams
-    val recordNewMeasurementEffect = MockFunctions.function4<UUID, Int, Int, Instant, BloodPressureMeasurement>(PatientMocker.bp())
+    val recordNewMeasurementEffect = MockFunctions.function3<UUID, BpReading, Instant, BloodPressureMeasurement>(bp)
     val updateMeasurementEffect = MockFunctions.function1<BloodPressureMeasurement, Unit>(Unit)
 
     // This assertion was written only to stabilize the test by verifying incoming parameters
@@ -788,7 +788,7 @@ class BloodPressureEntrySheetLogicTest {
     val diastolic = 110.toString()
     val inputDate = LocalDate.of(2000, 5, 10)
 
-    val recordNewMeasurementEffect = MockFunctions.function4<UUID, Int, Int, Instant, BloodPressureMeasurement>(PatientMocker.bp(patientUuid = patientUuid))
+    val recordNewMeasurementEffect = MockFunctions.function3<UUID, BpReading, Instant, BloodPressureMeasurement>(PatientMocker.bp(patientUuid = patientUuid))
     val markAppointmentsCreatedBeforeTodayAsVisitedEffect = MockFunctions.function1<UUID, Unit>(Unit)
     val updatePatientRecordedEffect = MockFunctions.function2<UUID, Instant, Unit>(Unit)
 
@@ -811,7 +811,7 @@ class BloodPressureEntrySheetLogicTest {
     }
 
     val entryDateAsInstant = inputDate.toUtcInstant(testUserClock)
-    recordNewMeasurementEffect.invocations.assertCalledWithParameters(patientUuid, systolic.toInt(), diastolic.toInt(), entryDateAsInstant)
+    recordNewMeasurementEffect.invocations.assertCalledWithParameters(patientUuid, BpReading(systolic.toInt(), diastolic.toInt()), entryDateAsInstant)
     markAppointmentsCreatedBeforeTodayAsVisitedEffect.invocations.assertCalledWithParameters(patientUuid)
     updatePatientRecordedEffect.invocations.assertCalledWithParameters(patientUuid, entryDateAsInstant)
     verify(ui).setBpSavedResultAndFinish()
@@ -840,7 +840,7 @@ class BloodPressureEntrySheetLogicTest {
     val updateMeasurementEffect = MockFunctions.function1<BloodPressureMeasurement, Unit>(Unit)
     val updatePatientRecordedEffect = MockFunctions.function2<UUID, Instant, Unit>(Unit)
     val markAppointmentsCreatedBeforeTodayAsVisitedEffect = MockFunctions.function1<UUID, Unit>(Unit)
-    val recordNewMeasurementEffect = MockFunctions.function4<UUID, Int, Int, Instant, BloodPressureMeasurement>(PatientMocker.bp())
+    val recordNewMeasurementEffect = MockFunctions.function3<UUID, BpReading, Instant, BloodPressureMeasurement>(bp)
 
     sheetCreatedForUpdate(
         existingBpUuid = existingBp.uuid,
@@ -901,7 +901,7 @@ class BloodPressureEntrySheetLogicTest {
     val updateMeasurementEffect = MockFunctions.function1<BloodPressureMeasurement, Unit>(Unit)
     val updatePatientRecordedEffect = MockFunctions.function2<UUID, Instant, Unit>(Unit)
     val markAppointmentsCreatedBeforeTodayAsVisitedEffect = MockFunctions.function1<UUID, Unit>(Unit)
-    val recordNewMeasurementEffect = MockFunctions.function4<UUID, Int, Int, Instant, BloodPressureMeasurement>(PatientMocker.bp())
+    val recordNewMeasurementEffect = MockFunctions.function3<UUID, BpReading, Instant, BloodPressureMeasurement>(bp)
 
     sheetCreatedForUpdate(
         existingBpUuid = existingBp.uuid,
@@ -978,7 +978,7 @@ class BloodPressureEntrySheetLogicTest {
     val markAppointmentsCreatedBeforeTodayAsVisitedEffect = MockFunctions.function1<UUID, Unit>(Unit)
     val updateMeasurementEffect = MockFunctions.function1<BloodPressureMeasurement, Unit>(Unit)
     val updatePatientRecordedEffect = MockFunctions.function2<UUID, Instant, Unit>(Unit)
-    val recordNewMeasurementEffect = MockFunctions.function4<UUID, Int, Int, Instant, BloodPressureMeasurement>(PatientMocker.bp())
+    val recordNewMeasurementEffect = MockFunctions.function3<UUID, BpReading, Instant, BloodPressureMeasurement>(bp)
 
     sheetCreatedForUpdate(
         existingBpUuid = existingBp.uuid,
@@ -1019,10 +1019,10 @@ class BloodPressureEntrySheetLogicTest {
       testParams: ValidationErrorsAndUiChangesTestParams
   ) {
     val (systolic, diastolic, uiChangeVerification) = testParams
-    val recordNewMeasurementEffect = MockFunctions.function4<UUID, Int, Int, Instant, BloodPressureMeasurement>(bp)
+    val recordNewMeasurementEffect = MockFunctions.function3<UUID, BpReading, Instant, BloodPressureMeasurement>(bp)
     val updateMeasurementEffect = MockFunctions.function1<BloodPressureMeasurement, Unit>(Unit)
 
-    sheetCreatedForNew(patientUuid, recordNewMeasurementEffect = recordNewMeasurementEffect, updateMeasurementEffect = updateMeasurementEffect)
+    sheetCreatedForNew(patientUuid, updateMeasurementEffect = updateMeasurementEffect, recordNewMeasurementEffect = recordNewMeasurementEffect)
     uiEvents.onNext(ScreenChanged(BP_ENTRY))
     uiEvents.onNext(DayChanged("24"))
     uiEvents.onNext(MonthChanged("06"))
@@ -1108,18 +1108,18 @@ class BloodPressureEntrySheetLogicTest {
       updatePatientRecordedEffect: Function2<UUID, Instant, Unit> = Function2 { _, _ -> },
       markAppointmentsCreatedBeforeTodayAsVisitedEffect: Function1<UUID, Unit> = Function1 { },
       fetchExistingBloodPressureMeasurement: Function1<UUID, BloodPressureMeasurement> = Function1 { bp },
-      recordNewMeasurementEffect: Function4<UUID, Int, Int, Instant, BloodPressureMeasurement> = Function4 { _, systolic, diastolic, timestamp ->
+      updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit> = Function1 { },
+      recordNewMeasurementEffect: Function3<UUID, BpReading, Instant, BloodPressureMeasurement> = Function3 { _, bpReading, timestamp ->
         PatientMocker.bp(
             uuid = UUID.fromString("1c70ee9c-a5da-49ec-adf4-9259993ec56d"),
             patientUuid = patientUuid,
             facilityUuid = facility.uuid,
             userUuid = user.uuid,
             recordedAt = timestamp,
-            systolic = systolic,
-            diastolic = diastolic
+            systolic = bpReading.systolic,
+            diastolic = bpReading.diastolic
         )
-      },
-      updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit> = Function1 { }
+      }
   ) {
     val openAsNew = New(patientUuid)
     instantiateFixture(
@@ -1129,8 +1129,8 @@ class BloodPressureEntrySheetLogicTest {
         updatePatientRecordedEffect = updatePatientRecordedEffect,
         markAppointmentsCreatedBeforeTodayAsVisitedEffect = markAppointmentsCreatedBeforeTodayAsVisitedEffect,
         fetchExistingBloodPressureMeasurement = fetchExistingBloodPressureMeasurement,
-        recordNewMeasurementEffect = recordNewMeasurementEffect,
-        updateMeasurementEffect = updateMeasurementEffect
+        updateMeasurementEffect = updateMeasurementEffect,
+        recordNewMeasurementEffect = recordNewMeasurementEffect
     )
   }
 
@@ -1141,18 +1141,18 @@ class BloodPressureEntrySheetLogicTest {
       updatePatientRecordedEffect: Function2<UUID, Instant, Unit> = Function2 { _, _ -> },
       markAppointmentsCreatedBeforeTodayAsVisitedEffect: Function1<UUID, Unit> = Function1 { },
       fetchExistingBloodPressureMeasurement: Function1<UUID, BloodPressureMeasurement> = Function1 { bp },
-      recordNewMeasurementEffect: Function4<UUID, Int, Int, Instant, BloodPressureMeasurement> = Function4 { _, systolic, diastolic, timestamp ->
+      updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit> = Function1 { },
+      recordNewMeasurementEffect: Function3<UUID, BpReading, Instant, BloodPressureMeasurement> = Function3 { _, bpReading, timestamp ->
         PatientMocker.bp(
             uuid = UUID.fromString("1c70ee9c-a5da-49ec-adf4-9259993ec56d"),
             patientUuid = patientUuid,
             facilityUuid = facility.uuid,
             userUuid = user.uuid,
             recordedAt = timestamp,
-            systolic = systolic,
-            diastolic = diastolic
+            systolic = bpReading.systolic,
+            diastolic = bpReading.diastolic
         )
-      },
-      updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit> = Function1 { }
+      }
   ) {
     val openAsUpdate = Update(existingBpUuid)
     instantiateFixture(
@@ -1162,8 +1162,8 @@ class BloodPressureEntrySheetLogicTest {
         updatePatientRecordedEffect = updatePatientRecordedEffect,
         markAppointmentsCreatedBeforeTodayAsVisitedEffect = markAppointmentsCreatedBeforeTodayAsVisitedEffect,
         fetchExistingBloodPressureMeasurement = fetchExistingBloodPressureMeasurement,
-        recordNewMeasurementEffect = recordNewMeasurementEffect,
-        updateMeasurementEffect = updateMeasurementEffect
+        updateMeasurementEffect = updateMeasurementEffect,
+        recordNewMeasurementEffect = recordNewMeasurementEffect
     )
   }
 
@@ -1174,18 +1174,18 @@ class BloodPressureEntrySheetLogicTest {
       updatePatientRecordedEffect: Function2<UUID, Instant, Unit> = Function2 { _, _ -> },
       markAppointmentsCreatedBeforeTodayAsVisitedEffect: Function1<UUID, Unit> = Function1 { },
       fetchExistingBloodPressureMeasurement: Function1<UUID, BloodPressureMeasurement> = Function1 { bp },
-      recordNewMeasurementEffect: Function4<UUID, Int, Int, Instant, BloodPressureMeasurement> = Function4 { _, systolic, diastolic, timestamp ->
+      updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit> = Function1 { },
+      recordNewMeasurementEffect: Function3<UUID, BpReading, Instant, BloodPressureMeasurement> = Function3 { _, bpReading, timestamp ->
         PatientMocker.bp(
             uuid = UUID.fromString("1c70ee9c-a5da-49ec-adf4-9259993ec56d"),
             patientUuid = patientUuid,
             facilityUuid = facility.uuid,
             userUuid = user.uuid,
             recordedAt = timestamp,
-            systolic = systolic,
-            diastolic = diastolic
+            systolic = bpReading.systolic,
+            diastolic = bpReading.diastolic
         )
-      },
-      updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit> = Function1 { }
+      }
   ) {
     when (openAs) {
       is New -> sheetCreatedForNew(
@@ -1195,8 +1195,8 @@ class BloodPressureEntrySheetLogicTest {
           updatePatientRecordedEffect = updatePatientRecordedEffect,
           markAppointmentsCreatedBeforeTodayAsVisitedEffect = markAppointmentsCreatedBeforeTodayAsVisitedEffect,
           fetchExistingBloodPressureMeasurement = fetchExistingBloodPressureMeasurement,
-          recordNewMeasurementEffect = recordNewMeasurementEffect,
-          updateMeasurementEffect = updateMeasurementEffect
+          updateMeasurementEffect = updateMeasurementEffect,
+          recordNewMeasurementEffect = recordNewMeasurementEffect
       )
       is Update -> sheetCreatedForUpdate(
           existingBpUuid = openAs.bpUuid,
@@ -1205,8 +1205,8 @@ class BloodPressureEntrySheetLogicTest {
           updatePatientRecordedEffect = updatePatientRecordedEffect,
           markAppointmentsCreatedBeforeTodayAsVisitedEffect = markAppointmentsCreatedBeforeTodayAsVisitedEffect,
           fetchExistingBloodPressureMeasurement = fetchExistingBloodPressureMeasurement,
-          recordNewMeasurementEffect = recordNewMeasurementEffect,
-          updateMeasurementEffect = updateMeasurementEffect
+          updateMeasurementEffect = updateMeasurementEffect,
+          recordNewMeasurementEffect = recordNewMeasurementEffect
       )
       else -> throw IllegalStateException("Unknown `openAs`: $openAs")
     }
@@ -1219,8 +1219,8 @@ class BloodPressureEntrySheetLogicTest {
       updatePatientRecordedEffect: Function2<UUID, Instant, Unit>,
       markAppointmentsCreatedBeforeTodayAsVisitedEffect: Function1<UUID, Unit>,
       fetchExistingBloodPressureMeasurement: Function1<UUID, BloodPressureMeasurement>,
-      recordNewMeasurementEffect: Function4<UUID, Int, Int, Instant, BloodPressureMeasurement>,
-      updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit>
+      updateMeasurementEffect: Function1<BloodPressureMeasurement, Unit>,
+      recordNewMeasurementEffect: Function3<UUID, BpReading, Instant, BloodPressureMeasurement>
   ) {
     val effectHandler = BloodPressureEntryEffectHandler(
         ui = ui,
@@ -1231,8 +1231,8 @@ class BloodPressureEntrySheetLogicTest {
         updatePatientRecordedEffect = updatePatientRecordedEffect,
         markAppointmentsCreatedBeforeTodayAsVisitedEffect = markAppointmentsCreatedBeforeTodayAsVisitedEffect,
         fetchExistingBloodPressureMeasurement = fetchExistingBloodPressureMeasurement,
-        recordNewMeasurementEffect = recordNewMeasurementEffect,
-        updateMeasurementEffect = updateMeasurementEffect
+        updateMeasurementEffect = updateMeasurementEffect,
+        recordNewMeasurementEffect = recordNewMeasurementEffect
     ).build()
 
     fixture = MobiusTestFixture(

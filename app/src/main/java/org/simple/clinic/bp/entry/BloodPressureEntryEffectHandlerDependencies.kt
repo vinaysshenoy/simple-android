@@ -4,11 +4,13 @@ import dagger.Module
 import dagger.Provides
 import org.simple.clinic.bp.BloodPressureMeasurement
 import org.simple.clinic.bp.BloodPressureRepository
+import org.simple.clinic.bp.BpReading
 import org.simple.clinic.facility.Facility
 import org.simple.clinic.functions.CachedFunction0.cached
 import org.simple.clinic.functions.Function0
 import org.simple.clinic.functions.Function1
 import org.simple.clinic.functions.Function2
+import org.simple.clinic.functions.Function3
 import org.simple.clinic.functions.Function4
 import org.simple.clinic.functions.SynchronisedFunction0.synchronised
 import org.simple.clinic.overdue.AppointmentRepository
@@ -60,16 +62,16 @@ class BloodPressureEntryEffectHandlerDependencies {
   }
 
   @Provides
-  fun bindRecordNewMeasurementEffect(
+  fun bind_recordNewMeasurementEffect(
       repository: BloodPressureRepository,
       fetchCurrentUser: Function0<User>,
       fetchCurrentFacility: Function0<Facility>
-  ): Function4<UUID, Int, Int, Instant, BloodPressureMeasurement> {
-    return Function4 { patientUuid, systolic, diastolic, timestamp ->
+  ): Function3<UUID, BpReading, Instant, BloodPressureMeasurement> {
+    return Function3 { patientUuid, bpReading, timestamp ->
       repository.saveMeasurement(
           patientUuid = patientUuid,
-          systolic = systolic,
-          diastolic = diastolic,
+          systolic = bpReading.systolic,
+          diastolic = bpReading.diastolic,
           loggedInUser = fetchCurrentUser.call(),
           currentFacility = fetchCurrentFacility.call(),
           recordedAt = timestamp
