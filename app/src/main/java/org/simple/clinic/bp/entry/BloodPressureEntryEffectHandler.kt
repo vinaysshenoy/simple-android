@@ -3,7 +3,6 @@ package org.simple.clinic.bp.entry
 import com.spotify.mobius.rx2.RxMobius
 import com.squareup.inject.assisted.Assisted
 import com.squareup.inject.assisted.AssistedInject
-import io.reactivex.Completable
 import io.reactivex.ObservableTransformer
 import io.reactivex.Scheduler
 import io.reactivex.rxkotlin.cast
@@ -11,10 +10,8 @@ import org.simple.clinic.ReportAnalyticsEvents
 import org.simple.clinic.bp.BloodPressureMeasurement
 import org.simple.clinic.bp.BpReading
 import org.simple.clinic.bp.entry.BpValidator.Validation
-import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorDiastolicEmpty
 import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorDiastolicTooHigh
 import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorDiastolicTooLow
-import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorSystolicEmpty
 import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorSystolicLessThanDiastolic
 import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorSystolicTooHigh
 import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorSystolicTooLow
@@ -129,8 +126,6 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
       is ErrorSystolicTooLow -> ui.showSystolicLowError()
       is ErrorDiastolicTooHigh -> ui.showDiastolicHighError()
       is ErrorDiastolicTooLow -> ui.showDiastolicLowError()
-      is ErrorSystolicEmpty -> ui.showSystolicEmptyError()
-      is ErrorDiastolicEmpty -> ui.showDiastolicEmptyError()
       is Success -> {
         /* Nothing to do here. */
       }
