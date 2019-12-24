@@ -10,7 +10,7 @@ class BpValidatorTest {
   fun `when systolic is less than diastolic, return error`() {
     val systolic = "90"
     val diastolic = "140"
-    val result = bpValidator.validate(systolic, diastolic)
+    val result = bpValidator.validate(systolic.trim().toInt(), diastolic.trim().toInt())
 
     assertThat(result).isEqualTo(BpValidator.Validation.ErrorSystolicLessThanDiastolic)
   }
@@ -19,7 +19,7 @@ class BpValidatorTest {
   fun `when systolic is less than minimum possible, return error`() {
     val systolic = "55"
     val diastolic = "55"
-    val result = bpValidator.validate(systolic, diastolic)
+    val result = bpValidator.validate(systolic.trim().toInt(), diastolic.trim().toInt())
 
     assertThat(result).isEqualTo(BpValidator.Validation.ErrorSystolicTooLow)
   }
@@ -28,7 +28,7 @@ class BpValidatorTest {
   fun `when systolic is more than maximum possible, return error`() {
     val systolic = "333"
     val diastolic = "88"
-    val result = bpValidator.validate(systolic, diastolic)
+    val result = bpValidator.validate(systolic.trim().toInt(), diastolic.trim().toInt())
 
     assertThat(result).isEqualTo(BpValidator.Validation.ErrorSystolicTooHigh)
   }
@@ -37,7 +37,7 @@ class BpValidatorTest {
   fun `when diastolic is less than minimum possible, return error`() {
     val systolic = "110"
     val diastolic = "33"
-    val result = bpValidator.validate(systolic, diastolic)
+    val result = bpValidator.validate(systolic.trim().toInt(), diastolic.trim().toInt())
 
     assertThat(result).isEqualTo(BpValidator.Validation.ErrorDiastolicTooLow)
   }
@@ -46,7 +46,7 @@ class BpValidatorTest {
   fun `when diastolic is more than maximum possible, return error`() {
     val systolic = "233"
     val diastolic = "190"
-    val result = bpValidator.validate(systolic, diastolic)
+    val result = bpValidator.validate(systolic.trim().toInt(), diastolic.trim().toInt())
 
     assertThat(result).isEqualTo(BpValidator.Validation.ErrorDiastolicTooHigh)
   }

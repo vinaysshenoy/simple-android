@@ -25,17 +25,14 @@ class BpValidator @Inject constructor() {
     object ErrorSystolicLessThanDiastolic : Validation()
   }
 
-  fun validate(systolic: String, diastolic: String): Validation {
-    val systolicNumber = systolic.trim().toInt()
-    val diastolicNumber = diastolic.trim().toInt()
-
+  fun validate(systolic: Int, diastolic: Int): Validation {
     return when {
-      systolicNumber < 70 -> ErrorSystolicTooLow
-      systolicNumber > 300 -> ErrorSystolicTooHigh
-      diastolicNumber < 40 -> ErrorDiastolicTooLow
-      diastolicNumber > 180 -> ErrorDiastolicTooHigh
-      systolicNumber < diastolicNumber -> ErrorSystolicLessThanDiastolic
-      else -> Success(systolicNumber, diastolicNumber)
+      systolic < 70 -> ErrorSystolicTooLow
+      systolic > 300 -> ErrorSystolicTooHigh
+      diastolic < 40 -> ErrorDiastolicTooLow
+      diastolic > 180 -> ErrorDiastolicTooHigh
+      systolic < diastolic -> ErrorSystolicLessThanDiastolic
+      else -> Success(systolic, diastolic)
     }
   }
 }
