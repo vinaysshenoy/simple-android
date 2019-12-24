@@ -101,13 +101,18 @@ class BloodPressureEntryUpdate(
   ): Next<BloodPressureEntryModel, BloodPressureEntryEffect> {
     val isSystolicBlank = model.systolic.isBlank()
     val isDiastolicBlank = model.diastolic.isBlank()
-    val result = if (!isSystolicBlank && !isDiastolicBlank) BpReading(model.systolic.trim().toInt(), model.diastolic.trim().toInt()).validate() else null
 
     val effect = when {
       isSystolicBlank -> ShowEmptySystolicError
       isDiastolicBlank -> ShowEmptyDiastolicError
-      result != null && result is BpValidationResult.Valid -> ShowDateEntryScreen
-      else -> ShowBpValidationError(result!!)
+      else -> {
+        val bpReading = BpReading(model.systolic.trim().toInt(), model.diastolic.trim().toInt())
+
+        when (bpReading.validate()) {
+          BpValidationResult.Valid -> ShowDateEntryScreen
+          else -> ShowBpValidationError(bpReading.validate())
+        }
+      }
     }
     return dispatch(effect)
   }
