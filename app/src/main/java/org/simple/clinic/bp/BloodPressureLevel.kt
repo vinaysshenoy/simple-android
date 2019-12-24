@@ -48,8 +48,9 @@ enum class BloodPressureLevel(private val urgency: Int, val displayTextRes: Opti
       }
     }
 
+    // TODO: Move to `BpReading`
     private fun computeSystolic(measurement: BloodPressureMeasurement): BloodPressureLevel {
-      return measurement.systolic.let {
+      return measurement.reading.systolic.let {
         when {
           it <= 89 -> LOW
           it in 90..129 -> NORMAL
@@ -62,8 +63,9 @@ enum class BloodPressureLevel(private val urgency: Int, val displayTextRes: Opti
       }
     }
 
+    // TODO: Move to `BpReading`
     private fun computeDiastolic(measurement: BloodPressureMeasurement): BloodPressureLevel {
-      return measurement.diastolic.let {
+      return measurement.reading.diastolic.let {
         when {
           it <= 59 -> LOW
           it in 60..79 -> NORMAL

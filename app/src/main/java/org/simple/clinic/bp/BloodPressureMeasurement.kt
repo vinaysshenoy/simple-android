@@ -1,6 +1,7 @@
 package org.simple.clinic.bp
 
 import androidx.room.Dao
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.Insert
@@ -18,9 +19,8 @@ data class BloodPressureMeasurement(
     @PrimaryKey
     val uuid: UUID,
 
-    val systolic: Int,
-
-    val diastolic: Int,
+    @Embedded
+    val reading: BpReading,
 
     val syncStatus: SyncStatus,
 
@@ -48,14 +48,23 @@ data class BloodPressureMeasurement(
     return BloodPressureMeasurementPayload(
         uuid = uuid,
         patientUuid = patientUuid,
-        systolic = systolic,
-        diastolic = diastolic,
+        systolic = reading.systolic,
+        diastolic = reading.diastolic,
         facilityUuid = facilityUuid,
         userUuid = userUuid,
         createdAt = createdAt,
         updatedAt = updatedAt,
         deletedAt = deletedAt,
         recordedAt = recordedAt)
+  }
+
+  fun updated(
+      userUuid: UUID,
+      facilityUuid: UUID,
+      reading: BpReading,
+      recordedAt: Instant
+  ): BloodPressureMeasurement {
+    return this.copy(userUuid = userUuid, facilityUuid = facilityUuid, reading = reading, recordedAt = recordedAt)
   }
 
   @Dao

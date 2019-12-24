@@ -3,6 +3,7 @@ package org.simple.clinic
 import io.bloco.faker.Faker
 import org.simple.clinic.appconfig.Country
 import org.simple.clinic.bp.BloodPressureMeasurement
+import org.simple.clinic.bp.BpReading
 import org.simple.clinic.bp.sync.BloodPressureMeasurementPayload
 import org.simple.clinic.di.AppScope
 import org.simple.clinic.drugs.PrescribedDrug
@@ -687,17 +688,16 @@ class TestData @Inject constructor(
   ): BloodPressureMeasurement {
     return BloodPressureMeasurement(
         uuid = uuid,
-        systolic = systolic,
-        diastolic = diastolic,
+        reading = BpReading(systolic, diastolic),
         syncStatus = syncStatus,
         userUuid = userUuid,
         facilityUuid = facilityUuid,
         patientUuid = patientUuid,
+        encounterUuid = generateEncounterUuid(facilityUuid, patientUuid, recordedAt.toLocalDateAtZone(userClock.zone)),
         createdAt = createdAt,
         updatedAt = updatedAt,
         deletedAt = deletedAt,
-        recordedAt = recordedAt,
-        encounterUuid = generateEncounterUuid(facilityUuid, patientUuid, recordedAt.toLocalDateAtZone(userClock.zone))
+        recordedAt = recordedAt
     )
   }
 

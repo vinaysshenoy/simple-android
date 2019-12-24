@@ -3,6 +3,7 @@ package org.simple.clinic.patient
 import com.nhaarman.mockito_kotlin.mock
 import org.simple.clinic.appconfig.Country
 import org.simple.clinic.bp.BloodPressureMeasurement
+import org.simple.clinic.bp.BpReading
 import org.simple.clinic.drugs.PrescribedDrug
 import org.simple.clinic.facility.Facility
 import org.simple.clinic.facility.FacilityPayload
@@ -113,17 +114,16 @@ object PatientMocker {
   ): BloodPressureMeasurement {
     return BloodPressureMeasurement(
         uuid = uuid,
-        systolic = systolic,
-        diastolic = diastolic,
+        reading = BpReading(systolic, diastolic),
         syncStatus = syncStatus,
         userUuid = userUuid,
         facilityUuid = facilityUuid,
         patientUuid = patientUuid,
+        encounterUuid = generateEncounterUuid(facilityUuid, patientUuid, recordedAt.toLocalDateAtZone(UTC)),
         createdAt = createdAt,
         updatedAt = updatedAt,
         deletedAt = deletedAt,
-        recordedAt = recordedAt,
-        encounterUuid = generateEncounterUuid(facilityUuid, patientUuid, recordedAt.toLocalDateAtZone(UTC))
+        recordedAt = recordedAt
     )
   }
 

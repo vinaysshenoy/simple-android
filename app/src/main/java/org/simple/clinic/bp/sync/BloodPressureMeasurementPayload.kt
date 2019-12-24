@@ -3,6 +3,7 @@ package org.simple.clinic.bp.sync
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import org.simple.clinic.bp.BloodPressureMeasurement
+import org.simple.clinic.bp.BpReading
 import org.simple.clinic.patient.SyncStatus
 import org.simple.clinic.util.generateEncounterUuid
 import org.simple.clinic.util.toLocalDateAtZone
@@ -46,34 +47,34 @@ data class BloodPressureMeasurementPayload(
   fun toDatabaseModel(syncStatus: SyncStatus): BloodPressureMeasurement {
     return BloodPressureMeasurement(
         uuid = uuid,
-        systolic = systolic,
-        diastolic = diastolic,
+        reading = BpReading(systolic, diastolic),
         syncStatus = syncStatus,
         userUuid = userUuid,
         facilityUuid = facilityUuid,
         patientUuid = patientUuid,
+        //FIXME: [Encounter] This code is throw-away. Once the Encounter API is implemented, this should be fixed.
+        encounterUuid = generateEncounterUuid(facilityUuid, patientUuid, recordedAt.toLocalDateAtZone(ZoneOffset.UTC)),
         createdAt = createdAt,
         updatedAt = updatedAt,
         deletedAt = deletedAt,
-        recordedAt = recordedAt,
-        //FIXME: [Encounter] This code is throw-away. Once the Encounter API is implemented, this should be fixed.
-        encounterUuid = generateEncounterUuid(facilityUuid, patientUuid, recordedAt.toLocalDateAtZone(ZoneOffset.UTC)))
+        recordedAt = recordedAt
+    )
   }
 
   fun toDatabaseModel(syncStatus: SyncStatus, encounterUuid: UUID): BloodPressureMeasurement {
     return BloodPressureMeasurement(
         uuid = uuid,
-        systolic = systolic,
-        diastolic = diastolic,
+        reading = BpReading(systolic, diastolic),
         syncStatus = syncStatus,
         userUuid = userUuid,
         facilityUuid = facilityUuid,
         patientUuid = patientUuid,
+        encounterUuid = encounterUuid,
         createdAt = createdAt,
         updatedAt = updatedAt,
         deletedAt = deletedAt,
-        recordedAt = recordedAt,
-        encounterUuid = encounterUuid)
+        recordedAt = recordedAt
+    )
   }
 
 }

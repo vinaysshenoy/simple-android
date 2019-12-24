@@ -3463,8 +3463,8 @@ class DatabaseMigrationAndroidTest {
         .map {
           mapOf(
               "uuid" to it.uuid,
-              "systolic" to it.systolic,
-              "diastolic" to it.diastolic,
+              "systolic" to it.reading.systolic,
+              "diastolic" to it.reading.diastolic,
               "syncStatus" to "DONE",
               "userUuid" to it.userUuid,
               "facilityUuid" to it.facilityUuid,
@@ -3557,8 +3557,8 @@ class DatabaseMigrationAndroidTest {
         .map {
           mapOf(
               "uuid" to it.uuid,
-              "systolic" to it.systolic,
-              "diastolic" to it.diastolic,
+              "systolic" to it.reading.systolic,
+              "diastolic" to it.reading.diastolic,
               "syncStatus" to "DONE",
               "userUuid" to it.userUuid,
               "facilityUuid" to it.facilityUuid,
@@ -3667,8 +3667,8 @@ class DatabaseMigrationAndroidTest {
         .map {
           mapOf(
               "uuid" to it.uuid,
-              "systolic" to it.systolic,
-              "diastolic" to it.diastolic,
+              "systolic" to it.reading.systolic,
+              "diastolic" to it.reading.diastolic,
               "syncStatus" to "DONE",
               "userUuid" to it.userUuid,
               "facilityUuid" to it.facilityUuid,
@@ -3778,8 +3778,8 @@ class DatabaseMigrationAndroidTest {
         .map {
           mapOf(
               "uuid" to it.uuid,
-              "systolic" to it.systolic,
-              "diastolic" to it.diastolic,
+              "systolic" to it.reading.systolic,
+              "diastolic" to it.reading.diastolic,
               "syncStatus" to "DONE",
               "userUuid" to it.userUuid,
               "facilityUuid" to it.facilityUuid,

@@ -76,7 +76,7 @@ class BloodPressureItemView(
       else -> R.style.Clinic_V2_TextAppearance_PatientSummary_BloodPressure_Normal
     }
     readingsTextView.setTextAppearanceCompat(readingsTextAppearanceResId)
-    readingsTextView.text = context.resources.getString(R.string.patientsummary_bp_reading, measurement.systolic, measurement.diastolic)
+    readingsTextView.text = context.resources.getString(R.string.patientsummary_bp_reading, measurement.reading.systolic, measurement.reading.diastolic)
   }
 
   private fun renderBpLevel(measurement: BloodPressureMeasurement) {

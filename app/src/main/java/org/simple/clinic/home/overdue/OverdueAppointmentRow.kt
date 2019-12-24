@@ -51,8 +51,8 @@ data class OverdueAppointmentRow(
           gender = overdueAppointment.gender,
           age = DateOfBirth.fromOverdueAppointment(overdueAppointment, clock).estimateAge(clock),
           phoneNumber = overdueAppointment.phoneNumber?.number,
-          bpSystolic = overdueAppointment.bloodPressure.systolic,
-          bpDiastolic = overdueAppointment.bloodPressure.diastolic,
+          bpSystolic = overdueAppointment.bloodPressure.reading.systolic,
+          bpDiastolic = overdueAppointment.bloodPressure.reading.diastolic,
           bpDaysAgo = calculateDaysAgoFromInstant(overdueAppointment.bloodPressure.recordedAt, clock),
           overdueDays = daysBetweenNowAndDate(overdueAppointment.appointment.scheduledDate, clock),
           isAtHighRisk = overdueAppointment.isAtHighRisk

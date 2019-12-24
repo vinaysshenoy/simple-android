@@ -43,17 +43,17 @@ class BloodPressureRepository @Inject constructor(
         .just(
             BloodPressureMeasurement(
                 uuid = UUID.randomUUID(),
-                systolic = systolic,
-                diastolic = diastolic,
+                reading = BpReading(systolic, diastolic),
                 syncStatus = SyncStatus.PENDING,
                 userUuid = loggedInUser.uuid,
                 facilityUuid = currentFacility.uuid,
                 patientUuid = patientUuid,
+                encounterUuid = generateEncounterUuid(currentFacility.uuid, patientUuid, recordedAt.toLocalDateAtZone(userClock.zone)),
                 createdAt = now,
                 updatedAt = now,
                 deletedAt = null,
-                recordedAt = recordedAt,
-                encounterUuid = generateEncounterUuid(currentFacility.uuid, patientUuid, recordedAt.toLocalDateAtZone(userClock.zone)))
+                recordedAt = recordedAt
+            )
         )
         .flatMap {
           save(listOf(it)).toSingleDefault(it)

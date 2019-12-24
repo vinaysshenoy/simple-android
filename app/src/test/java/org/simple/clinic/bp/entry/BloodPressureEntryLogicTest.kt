@@ -20,6 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.simple.clinic.bp.BloodPressureMeasurement
+import org.simple.clinic.bp.BpReading
 import org.simple.clinic.bp.entry.BloodPressureEntrySheet.ScreenType.BP_ENTRY
 import org.simple.clinic.bp.entry.BloodPressureEntrySheet.ScreenType.DATE_ENTRY
 import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorDiastolicEmpty
@@ -231,8 +232,8 @@ class BloodPressureEntrySheetLogicTest {
 
     if (openAs is Update) {
       val verify = verify(ui)
-      verify.setSystolic(bloodPressureMeasurement!!.systolic.toString())
-      verify.setDiastolic(bloodPressureMeasurement.diastolic.toString())
+      verify.setSystolic(bloodPressureMeasurement!!.reading.systolic.toString())
+      verify.setDiastolic(bloodPressureMeasurement.reading.diastolic.toString())
     } else {
       val verify = verify(ui, never())
       verify.setSystolic(any())
@@ -453,8 +454,7 @@ class BloodPressureEntrySheetLogicTest {
 
     val newInputDateAsInstant = newInputDate.toUtcInstant(testUserClock)
     val updatedBp = existingBp.copy(
-        systolic = 120,
-        diastolic = 110,
+        reading = BpReading(120, 110),
         updatedAt = oldCreatedAt,
         recordedAt = newInputDateAsInstant
     )
@@ -638,8 +638,8 @@ class BloodPressureEntrySheetLogicTest {
         recordedDate.month.value.toString(),
         recordedDate.year.toString().takeLast(2)
     )
-    verify(ui).setSystolic(bp.systolic.toString())
-    verify(ui).setDiastolic(bp.diastolic.toString())
+    verify(ui).setSystolic(bp.reading.systolic.toString())
+    verify(ui).setDiastolic(bp.reading.diastolic.toString())
     verify(ui).showRemoveBpButton()
     verify(ui).showEditBloodPressureTitle()
     verifyNoMoreInteractions(ui)
@@ -906,8 +906,7 @@ class BloodPressureEntrySheetLogicTest {
     val entryDateAsInstant = newInputDate.toUtcInstant(testUserClock)
     val newInputDateAsInstant = newInputDate.toUtcInstant(testUserClock)
     val updatedBp = existingBp.copy(
-        systolic = systolic.toInt(),
-        diastolic = diastolic.toInt(),
+        reading = BpReading(systolic.toInt(), diastolic.toInt()),
         updatedAt = createdAt,
         recordedAt = newInputDateAsInstant
     )
@@ -973,8 +972,7 @@ class BloodPressureEntrySheetLogicTest {
     val newInputDate = LocalDate.parse("2001-02-14")
     val newInputDateAsInstant = newInputDate.toUtcInstant(testUserClock)
     val updatedBp = existingBp.copy(
-        systolic = 120,
-        diastolic = 110,
+        reading = BpReading(120, 110),
         updatedAt = oldCreatedAt,
         recordedAt = newInputDateAsInstant,
         userUuid = userFromDifferentFacility.uuid,
@@ -1012,8 +1010,7 @@ class BloodPressureEntrySheetLogicTest {
     val newInputDate = LocalDate.of(2001, 2, 14)
     val newInputDateAsInstant = newInputDate.toUtcInstant(testUserClock)
     val updatedBp = existingBp.copy(
-        systolic = systolic.toInt(),
-        diastolic = diastolic.toInt(),
+        reading = BpReading(systolic.toInt(), diastolic.toInt()),
         userUuid = userFromDifferentFacility.uuid,
         facilityUuid = differentFacility.uuid,
         recordedAt = newInputDateAsInstant

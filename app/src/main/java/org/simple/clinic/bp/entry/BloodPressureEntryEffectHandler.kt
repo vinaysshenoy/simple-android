@@ -9,6 +9,7 @@ import io.reactivex.Scheduler
 import io.reactivex.rxkotlin.cast
 import org.simple.clinic.ReportAnalyticsEvents
 import org.simple.clinic.bp.BloodPressureMeasurement
+import org.simple.clinic.bp.BpReading
 import org.simple.clinic.bp.entry.BpValidator.Validation
 import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorDiastolicEmpty
 import org.simple.clinic.bp.entry.BpValidator.Validation.ErrorDiastolicTooHigh
@@ -115,7 +116,7 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
       fetchBloodPressureMeasurement
           .observeOn(scheduler)
           .map { fetchExistingBloodPressureMeasurement.call(it.bpUuid) }
-          .map { BloodPressureMeasurementFetched(it.systolic, it.diastolic, it.recordedAt) }
+          .map { BloodPressureMeasurementFetched(it.reading.systolic, it.reading.diastolic, it.recordedAt) }
     }
   }
 
@@ -202,11 +203,10 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
     val user = fetchCurrentUser.call()
     val facility = fetchCurrentFacility.call()
 
-    return existingMeasurement.copy(
+    return existingMeasurement.updated(
         userUuid = user.uuid,
         facilityUuid = facility.uuid,
-        systolic = systolic,
-        diastolic = diastolic,
+        reading = BpReading(systolic, diastolic),
         recordedAt = parsedDateFromForm.toUtcInstant(userClock)
     )
   }
