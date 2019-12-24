@@ -18,12 +18,10 @@ class BloodPressureEntryUpdateTest {
   private val localDate = LocalDate.parse("2018-01-01")
   private val testUserClock = TestUserClock(localDate)
   private val dateValidator = UserInputDateValidator(testUserClock, DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ENGLISH))
-  private val bpValidator = BpValidator()
   private val patientUuid = UUID.fromString("d37b134b-64c3-40d6-8f95-5eb88d075d14")
 
   private val spec = UpdateSpec(
       BloodPressureEntryUpdate(
-          bpValidator = bpValidator,
           dateValidator = dateValidator,
           inputDatePaddingCharacter = UserInputDatePaddingCharacter.ZERO,
           dateInUserTimeZone = localDate

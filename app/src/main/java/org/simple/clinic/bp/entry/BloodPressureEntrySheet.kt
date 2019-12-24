@@ -82,9 +82,6 @@ class BloodPressureEntrySheet : BottomSheetActivity(), BloodPressureEntryUi, Rem
   lateinit var crashReporter: CrashReporter
 
   @Inject
-  lateinit var bpValidator: BpValidator
-
-  @Inject
   lateinit var userTimeZone: ZoneId
 
   @Inject
@@ -103,7 +100,7 @@ class BloodPressureEntrySheet : BottomSheetActivity(), BloodPressureEntryUi, Rem
         events.ofType(),
         defaultModel,
         BloodPressureEntryInit(),
-        BloodPressureEntryUpdate(bpValidator, dateValidator, LocalDate.now(userTimeZone), userInputDatePaddingCharacter),
+        BloodPressureEntryUpdate(dateValidator, LocalDate.now(userTimeZone), userInputDatePaddingCharacter),
         effectHandler.create(this).build(),
         uiRenderer::render,
         crashReporter

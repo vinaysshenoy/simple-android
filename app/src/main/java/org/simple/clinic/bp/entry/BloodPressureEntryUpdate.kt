@@ -2,6 +2,7 @@ package org.simple.clinic.bp.entry
 
 import com.spotify.mobius.Next
 import com.spotify.mobius.Update
+import org.simple.clinic.bp.BpReading
 import org.simple.clinic.bp.entry.BloodPressureEntrySheet.ScreenType.BP_ENTRY
 import org.simple.clinic.bp.entry.BloodPressureEntrySheet.ScreenType.DATE_ENTRY
 import org.simple.clinic.mobius.dispatch
@@ -13,7 +14,6 @@ import org.simple.clinic.bp.BpReading.ValidationResult as BpValidationResult
 import org.simple.clinic.widgets.ageanddateofbirth.UserInputDateValidator.Result as DateValidationResult
 
 class BloodPressureEntryUpdate(
-    private val bpValidator: BpValidator,
     private val dateValidator: UserInputDateValidator,
     private val dateInUserTimeZone: LocalDate,
     private val inputDatePaddingCharacter: UserInputDatePaddingCharacter
@@ -101,7 +101,7 @@ class BloodPressureEntryUpdate(
   ): Next<BloodPressureEntryModel, BloodPressureEntryEffect> {
     val isSystolicBlank = model.systolic.isBlank()
     val isDiastolicBlank = model.diastolic.isBlank()
-    val result = if (!isSystolicBlank && !isDiastolicBlank) bpValidator.validate(model.systolic.trim().toInt(), model.diastolic.trim().toInt()) else null
+    val result = if (!isSystolicBlank && !isDiastolicBlank) BpReading(model.systolic.trim().toInt(), model.diastolic.trim().toInt()).validate() else null
 
     val effect = when {
       isSystolicBlank -> ShowEmptySystolicError
@@ -117,7 +117,7 @@ class BloodPressureEntryUpdate(
   ): Next<BloodPressureEntryModel, BloodPressureEntryEffect> {
     val isSystolicBlank = model.systolic.isBlank()
     val isDiastolicBlank = model.diastolic.isBlank()
-    val bpValidationResult = if (!isSystolicBlank && !isDiastolicBlank) bpValidator.validate(model.systolic.trim().toInt(), model.diastolic.trim().toInt()) else null
+    val bpValidationResult = if (!isSystolicBlank && !isDiastolicBlank) BpReading(model.systolic.trim().toInt(), model.diastolic.trim().toInt()).validate() else null
     val dateValidationResult = dateValidator.validate(getDateText(model), dateInUserTimeZone)
 
     return when {
