@@ -182,20 +182,16 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
             val updatedMeasurement = updateBloodPressureMeasurementValues(existingMeasurement, updateBpEntry)
             updatedMeasurement to updateBpEntry.wasDateChanged
           }
-          .flatMapSingle { (bloodPressureMeasurement, wasDateChanged) ->
-            storeUpdateBloodPressureMeasurement(bloodPressureMeasurement)
-                .toSingleDefault(BloodPressureSaved(wasDateChanged))
-          }
+          .doOnNext { (bloodPressureMeasurement, _) -> storeUpdateBloodPressureMeasurement(bloodPressureMeasurement) }
+          .map { (_, wasDateChanged) -> BloodPressureSaved(wasDateChanged) }
           .compose(reportAnalyticsEvents)
           .cast()
     }
   }
 
-  private fun storeUpdateBloodPressureMeasurement(
-      bloodPressureMeasurement: BloodPressureMeasurement
-  ): Completable {
-    return Completable.fromAction { updateMeasurementEffect.call(bloodPressureMeasurement) }
-        .doOnComplete { updatePatientRecordedEffect.call(bloodPressureMeasurement.patientUuid, bloodPressureMeasurement.recordedAt) }
+  private fun storeUpdateBloodPressureMeasurement(bloodPressureMeasurement: BloodPressureMeasurement) {
+    updateMeasurementEffect.call(bloodPressureMeasurement)
+    updatePatientRecordedEffect.call(bloodPressureMeasurement.patientUuid, bloodPressureMeasurement.recordedAt)
   }
 
   private fun updateBloodPressureMeasurementValues(
