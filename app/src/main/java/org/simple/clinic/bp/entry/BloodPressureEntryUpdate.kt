@@ -9,7 +9,7 @@ import org.simple.clinic.mobius.next
 import org.simple.clinic.util.UserInputDatePaddingCharacter
 import org.simple.clinic.widgets.ageanddateofbirth.UserInputDateValidator
 import org.threeten.bp.LocalDate
-import org.simple.clinic.bp.entry.BpValidator.Result as BpValidationResult
+import org.simple.clinic.bp.BpReading.ValidationResult as BpValidationResult
 import org.simple.clinic.widgets.ageanddateofbirth.UserInputDateValidator.Result as DateValidationResult
 
 class BloodPressureEntryUpdate(

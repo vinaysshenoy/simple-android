@@ -1,26 +1,17 @@
 package org.simple.clinic.bp.entry
 
-import org.simple.clinic.bp.entry.BpValidator.Result.ErrorDiastolicTooHigh
-import org.simple.clinic.bp.entry.BpValidator.Result.ErrorDiastolicTooLow
-import org.simple.clinic.bp.entry.BpValidator.Result.ErrorSystolicLessThanDiastolic
-import org.simple.clinic.bp.entry.BpValidator.Result.ErrorSystolicTooHigh
-import org.simple.clinic.bp.entry.BpValidator.Result.ErrorSystolicTooLow
-import org.simple.clinic.bp.entry.BpValidator.Result.Valid
+import org.simple.clinic.bp.BpReading
+import org.simple.clinic.bp.BpReading.ValidationResult.ErrorDiastolicTooHigh
+import org.simple.clinic.bp.BpReading.ValidationResult.ErrorDiastolicTooLow
+import org.simple.clinic.bp.BpReading.ValidationResult.ErrorSystolicLessThanDiastolic
+import org.simple.clinic.bp.BpReading.ValidationResult.ErrorSystolicTooHigh
+import org.simple.clinic.bp.BpReading.ValidationResult.ErrorSystolicTooLow
+import org.simple.clinic.bp.BpReading.ValidationResult.Valid
 import javax.inject.Inject
 
 class BpValidator @Inject constructor() {
 
-  sealed class Result {
-    object Valid : Result()
-
-    object ErrorSystolicTooHigh : Result()
-    object ErrorSystolicTooLow : Result()
-    object ErrorDiastolicTooHigh : Result()
-    object ErrorDiastolicTooLow : Result()
-    object ErrorSystolicLessThanDiastolic : Result()
-  }
-
-  fun validate(systolic: Int, diastolic: Int): Result {
+  fun validate(systolic: Int, diastolic: Int): BpReading.ValidationResult {
     return when {
       systolic < 70 -> ErrorSystolicTooLow
       systolic > 300 -> ErrorSystolicTooHigh

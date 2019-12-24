@@ -9,11 +9,11 @@ import io.reactivex.rxkotlin.cast
 import org.simple.clinic.ReportAnalyticsEvents
 import org.simple.clinic.bp.BloodPressureMeasurement
 import org.simple.clinic.bp.BpReading
-import org.simple.clinic.bp.entry.BpValidator.Result.ErrorDiastolicTooHigh
-import org.simple.clinic.bp.entry.BpValidator.Result.ErrorDiastolicTooLow
-import org.simple.clinic.bp.entry.BpValidator.Result.ErrorSystolicLessThanDiastolic
-import org.simple.clinic.bp.entry.BpValidator.Result.ErrorSystolicTooHigh
-import org.simple.clinic.bp.entry.BpValidator.Result.ErrorSystolicTooLow
+import org.simple.clinic.bp.BpReading.ValidationResult.ErrorDiastolicTooHigh
+import org.simple.clinic.bp.BpReading.ValidationResult.ErrorDiastolicTooLow
+import org.simple.clinic.bp.BpReading.ValidationResult.ErrorSystolicLessThanDiastolic
+import org.simple.clinic.bp.BpReading.ValidationResult.ErrorSystolicTooHigh
+import org.simple.clinic.bp.BpReading.ValidationResult.ErrorSystolicTooLow
 import org.simple.clinic.bp.entry.PrefillDate.PrefillSpecificDate
 import org.simple.clinic.facility.Facility
 import org.simple.clinic.functions.Function0
@@ -66,7 +66,7 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
         .addConsumer(ShowConfirmRemoveBloodPressureDialog::class.java, { ui.showConfirmRemoveBloodPressureDialog(it.bpUuid) }, schedulersProvider.ui())
         .addAction(Dismiss::class.java, ui::dismiss, schedulersProvider.ui())
         .addAction(HideDateErrorMessage::class.java, ui::hideDateErrorMessage, schedulersProvider.ui())
-        .addConsumer(ShowBpValidationError::class.java, { showBpValidationError(it.result) }, schedulersProvider.ui())
+        .addConsumer(ShowBpValidationError::class.java, { showBpValidationError(it.validationResult) }, schedulersProvider.ui())
         .addAction(ShowDateEntryScreen::class.java, ui::showDateEntryScreen, schedulersProvider.ui())
         .addConsumer(ShowBpEntryScreen::class.java, { showBpEntryScreen(it.date) }, schedulersProvider.ui())
         .addConsumer(ShowDateValidationError::class.java, { showDateValidationError(it.result) }, schedulersProvider.ui())
@@ -116,14 +116,14 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
     }
   }
 
-  private fun showBpValidationError(bpValidation: BpValidator.Result) {
+  private fun showBpValidationError(bpValidation: BpReading.ValidationResult) {
     when (bpValidation) {
       is ErrorSystolicLessThanDiastolic -> ui.showSystolicLessThanDiastolicError()
       is ErrorSystolicTooHigh -> ui.showSystolicHighError()
       is ErrorSystolicTooLow -> ui.showSystolicLowError()
       is ErrorDiastolicTooHigh -> ui.showDiastolicHighError()
       is ErrorDiastolicTooLow -> ui.showDiastolicLowError()
-      is BpValidator.Result.Valid -> {
+      is BpReading.ValidationResult.Valid -> {
         /* Nothing to do here. */
       }
     }.exhaustive()
