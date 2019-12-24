@@ -1,7 +1,6 @@
 package org.simple.clinic.bp.entry
 
-import org.simple.clinic.bp.entry.BpValidator.Validation
-import org.simple.clinic.widgets.ageanddateofbirth.UserInputDateValidator.Result
+import org.simple.clinic.widgets.ageanddateofbirth.UserInputDateValidator
 import org.threeten.bp.Instant
 import org.threeten.bp.LocalDate
 import java.util.UUID
@@ -42,13 +41,13 @@ object Dismiss : BloodPressureEntryEffect()
 
 object HideDateErrorMessage : BloodPressureEntryEffect()
 
-data class ShowBpValidationError(val result: Validation) : BloodPressureEntryEffect()
+data class ShowBpValidationError(val result: BpValidator.Result) : BloodPressureEntryEffect()
 
 object ShowDateEntryScreen : BloodPressureEntryEffect()
 
 data class ShowBpEntryScreen(val date: LocalDate) : BloodPressureEntryEffect()
 
-data class ShowDateValidationError(val result: Result) : BloodPressureEntryEffect()
+data class ShowDateValidationError(val result: UserInputDateValidator.Result) : BloodPressureEntryEffect()
 
 data class CreateNewBpEntry(
     val patientUuid: UUID,

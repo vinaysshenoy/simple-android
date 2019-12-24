@@ -12,7 +12,7 @@ class BpValidatorTest {
     val diastolic = "140"
     val result = bpValidator.validate(systolic.trim().toInt(), diastolic.trim().toInt())
 
-    assertThat(result).isEqualTo(BpValidator.Validation.ErrorSystolicLessThanDiastolic)
+    assertThat(result).isEqualTo(BpValidator.Result.ErrorSystolicLessThanDiastolic)
   }
 
   @Test
@@ -21,7 +21,7 @@ class BpValidatorTest {
     val diastolic = "55"
     val result = bpValidator.validate(systolic.trim().toInt(), diastolic.trim().toInt())
 
-    assertThat(result).isEqualTo(BpValidator.Validation.ErrorSystolicTooLow)
+    assertThat(result).isEqualTo(BpValidator.Result.ErrorSystolicTooLow)
   }
 
   @Test
@@ -30,7 +30,7 @@ class BpValidatorTest {
     val diastolic = "88"
     val result = bpValidator.validate(systolic.trim().toInt(), diastolic.trim().toInt())
 
-    assertThat(result).isEqualTo(BpValidator.Validation.ErrorSystolicTooHigh)
+    assertThat(result).isEqualTo(BpValidator.Result.ErrorSystolicTooHigh)
   }
 
   @Test
@@ -39,7 +39,7 @@ class BpValidatorTest {
     val diastolic = "33"
     val result = bpValidator.validate(systolic.trim().toInt(), diastolic.trim().toInt())
 
-    assertThat(result).isEqualTo(BpValidator.Validation.ErrorDiastolicTooLow)
+    assertThat(result).isEqualTo(BpValidator.Result.ErrorDiastolicTooLow)
   }
 
   @Test
@@ -48,7 +48,7 @@ class BpValidatorTest {
     val diastolic = "190"
     val result = bpValidator.validate(systolic.trim().toInt(), diastolic.trim().toInt())
 
-    assertThat(result).isEqualTo(BpValidator.Validation.ErrorDiastolicTooHigh)
+    assertThat(result).isEqualTo(BpValidator.Result.ErrorDiastolicTooHigh)
   }
 }
 
