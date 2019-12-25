@@ -193,14 +193,14 @@ class BloodPressureEntryEffectHandler @AssistedInject constructor(
       existingMeasurement: BloodPressureMeasurement,
       updateBpEntry: UpdateBpEntry
   ): BloodPressureMeasurement {
-    val (_, systolic, diastolic, parsedDateFromForm, _) = updateBpEntry
+    val (_, reading, parsedDateFromForm, _) = updateBpEntry
     val user = fetchCurrentUser.call()
     val facility = fetchCurrentFacility.call()
 
     return existingMeasurement.updated(
         userUuid = user.uuid,
         facilityUuid = facility.uuid,
-        reading = BpReading(systolic, diastolic),
+        reading = reading,
         recordedAt = parsedDateFromForm.toUtcInstant(userClock)
     )
   }
