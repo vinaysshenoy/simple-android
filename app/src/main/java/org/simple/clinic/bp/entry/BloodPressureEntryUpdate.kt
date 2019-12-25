@@ -122,20 +122,52 @@ class BloodPressureEntryUpdate(
   ): Next<BloodPressureEntryModel, BloodPressureEntryEffect> {
     val isSystolicBlank = model.systolic.isBlank()
     val isDiastolicBlank = model.diastolic.isBlank()
-    val bpValidationResult = if (!isSystolicBlank && !isDiastolicBlank) BpReading(model.systolic.trim().toInt(), model.diastolic.trim().toInt()).validate() else null
-    val dateValidationResult = dateValidator.validate(getDateText(model), dateInUserTimeZone)
 
     return when {
-      isSystolicBlank && dateValidationResult is DateValidationResult.Valid -> dispatch(ShowEmptySystolicError)
-      isSystolicBlank && dateValidationResult !is DateValidationResult.Valid -> dispatch(ShowEmptySystolicError, ShowDateValidationError(dateValidationResult))
-      isDiastolicBlank && dateValidationResult is DateValidationResult.Valid -> dispatch(ShowEmptyDiastolicError)
-      isDiastolicBlank && dateValidationResult !is DateValidationResult.Valid -> dispatch(ShowEmptyDiastolicError, ShowDateValidationError(dateValidationResult))
-      bpValidationResult != null && bpValidationResult !is BpValidationResult.Valid && dateValidationResult is DateValidationResult.Valid -> dispatch(ShowBpValidationError(bpValidationResult))
-      bpValidationResult != null && bpValidationResult is BpValidationResult.Valid && dateValidationResult !is DateValidationResult.Valid -> dispatch(ShowDateValidationError(dateValidationResult))
-      bpValidationResult != null && bpValidationResult !is BpValidationResult.Valid && dateValidationResult !is DateValidationResult.Valid -> dispatch(ShowBpValidationError(bpValidationResult), ShowDateValidationError(dateValidationResult))
-      else -> dispatch(getCreateOrUpdateEntryEffect(model, dateValidationResult))
+      isSystolicBlank && isDiastolicBlank -> dispatch(ShowEmptySystolicError)
+      isSystolicBlank -> dispatch(ShowEmptySystolicError)
+      isDiastolicBlank -> dispatch(ShowEmptyDiastolicError)
+      else -> {
+        val bpReading = BpReading(model.systolic.toInt(), model.diastolic.toInt())
+        val bpValidationResult = bpReading.validate()
+        val dateValidationResult = dateValidator.validate(getDateText(model), dateInUserTimeZone)
+
+        val effects = processEnteredBpAndDate(bpValidationResult, dateValidationResult, model, bpReading)
+
+        Next.dispatch(effects)
+      }
     }
   }
+
+  private fun processEnteredBpAndDate(
+      bpValidationResult: BpReading.ValidationResult,
+      dateValidationResult: UserInputDateValidator.Result,
+      model: BloodPressureEntryModel,
+      bpReading: BpReading
+  ): Set<BloodPressureEntryEffect> {
+    val isEnteredBpValid = bpValidationResult is BpValidationResult.Valid
+    val isEnteredDateValid = dateValidationResult is DateValidationResult.Valid
+
+    return when {
+      !isEnteredBpValid && isEnteredDateValid -> setOf(ShowBpValidationError(bpValidationResult))
+      isEnteredBpValid && !isEnteredDateValid -> setOf(ShowDateValidationError(dateValidationResult))
+      !isEnteredBpValid && !isEnteredDateValid -> setOf(ShowBpValidationError(bpValidationResult), ShowDateValidationError(dateValidationResult))
+      else -> setOf(getCreateOrUpdateEntryEffect(model.openAs, bpReading, model.prefilledDate!!, (dateValidationResult as DateValidationResult.Valid).parsedDate))
+    }
+  }
+
+  private fun getCreateOrUpdateEntryEffect(
+      openAs: OpenAs,
+      bpReading: BpReading,
+      prefilledDate: LocalDate,
+      userEnteredDate: LocalDate
+  ): BloodPressureEntryEffect {
+    return when (openAs) {
+      is OpenAs.New -> CreateNewBpEntry(openAs.patientUuid, bpReading, userEnteredDate, prefilledDate)
+      is OpenAs.Update -> UpdateBpEntry(openAs.bpUuid, bpReading, userEnteredDate, prefilledDate)
+    }
+  }
+
 
   private fun showBpClicked(
       model: BloodPressureEntryModel
@@ -147,23 +179,6 @@ class BloodPressureEntryUpdate(
       ShowDateValidationError(result)
     }
     return dispatch(effect)
-  }
-
-  private fun getCreateOrUpdateEntryEffect(
-      model: BloodPressureEntryModel,
-      dateValidationResult: DateValidationResult
-  ): BloodPressureEntryEffect {
-    val systolic = model.systolic.toInt()
-    val diastolic = model.diastolic.toInt()
-    val userEnteredDate = (dateValidationResult as DateValidationResult.Valid).parsedDate
-    val prefilledDate = model.prefilledDate!!
-
-    val bpReading = BpReading(systolic, diastolic)
-
-    return when (val openAs = model.openAs) {
-      is OpenAs.New -> CreateNewBpEntry(openAs.patientUuid, bpReading, userEnteredDate, prefilledDate)
-      is OpenAs.Update -> UpdateBpEntry(openAs.bpUuid, bpReading, userEnteredDate, prefilledDate)
-    }
   }
 
   private fun getDateText(model: BloodPressureEntryModel) =

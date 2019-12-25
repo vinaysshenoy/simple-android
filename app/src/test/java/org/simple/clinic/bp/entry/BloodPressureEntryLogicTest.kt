@@ -274,6 +274,8 @@ class BloodPressureEntrySheetLogicTest {
 
     sheetCreated(openAs, recordNewMeasurementEffect = recordNewMeasurementEffect, updateMeasurementEffect = updateMeasurementEffect)
 
+    uiEvents.onNext(SystolicChanged("120"))
+    uiEvents.onNext(DiastolicChanged("80"))
     uiEvents.onNext(ScreenChanged(DATE_ENTRY))
     uiEvents.onNext(DayChanged(day))
     uiEvents.onNext(MonthChanged(month))
@@ -439,6 +441,8 @@ class BloodPressureEntrySheetLogicTest {
 
     sheetCreated(openAs, recordNewMeasurementEffect = recordNewMeasurementEffect, updateMeasurementEffect = updateMeasurementEffect)
     uiEvents.run {
+      onNext(SystolicChanged("120"))
+      onNext(DiastolicChanged("80"))
       onNext(ScreenChanged(DATE_ENTRY))
       onNext(DayChanged(day))
       onNext(MonthChanged(month))
